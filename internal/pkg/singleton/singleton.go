@@ -1,15 +1,17 @@
 package singleton
 
-import "context"
+import "sync"
 
-type Singleton struct{}
+// Provider initializes a process-scoped dependency exactly once. Containers own
+// providers, so tests can create isolated containers without global state.
+type Provider[T any] struct {
+	once  sync.Once
+	value T
+	err   error
+}
 
-type Repositories struct{}
+func (p *Provider[T]) Get(factory func() (T, error)) (T, error) {
+	p.once.Do(func() { p.value, p.err = factory() })
 
-// instance - объект для получения конфигураций
-var instance *Singleton
-
-// GetSingleton - возвращает экземпляр Singleton
-func GetSingleton(c ...context.Context) *Singleton {
-	return instance
+	return p.value, p.err
 }
