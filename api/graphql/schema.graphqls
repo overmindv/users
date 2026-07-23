@@ -6,6 +6,9 @@ type User {
   lastName: String!
   birthDate: String
   phone: String
+  roles: [String!]!
+  isAdmin: Boolean!
+  isSuperuser: Boolean!
   createdAt: String!
   updatedAt: String!
 }
@@ -43,7 +46,8 @@ input UpdateUserInput {
 type Query {
   me: User!
   user(id: ID!): User!
-  users(limit: Int = 20, offset: Int = 0): [User!]!
+  userByUsername(username: String!): User!
+  users(search: String = "", limit: Int = 20, offset: Int = 0): [User!]!
 }
 
 type Mutation {
@@ -51,4 +55,6 @@ type Mutation {
   login(input: LoginInput!): AuthPayload!
   updateUser(id: ID!, input: UpdateUserInput!): User!
   deleteUser(id: ID!): Boolean!
+  setUserAdmin(id: ID!, admin: Boolean!): User!
+  setUserAdminByUsername(username: String!, admin: Boolean!): User!
 }

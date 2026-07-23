@@ -10,6 +10,7 @@ import (
 	"github.com/overmindv/arcee/internal/security"
 )
 
+// fakeRepository хранит пользователей в памяти для unit-тестов UserService.
 type fakeRepository struct {
 	users     map[string]*domain.User
 	err       error
@@ -17,8 +18,10 @@ type fakeRepository struct {
 	deleteErr error
 }
 
+// newFakeRepository создаёт пустой in-memory repository для тестов.
 func newFakeRepository() *fakeRepository { return &fakeRepository{users: map[string]*domain.User{}} }
 
+// Create сохраняет пользователя и имитирует уникальность email/username.
 func (r *fakeRepository) Create(_ context.Context, user *domain.User) error {
 	if r.err != nil {
 		return r.err
@@ -37,6 +40,8 @@ func (r *fakeRepository) Create(_ context.Context, user *domain.User) error {
 
 	return nil
 }
+
+// GetByID возвращает активного пользователя по ID из test repository.
 func (r *fakeRepository) GetByID(_ context.Context, id string) (*domain.User, error) {
 	if r.err != nil {
 		return nil, r.err
@@ -49,6 +54,8 @@ func (r *fakeRepository) GetByID(_ context.Context, id string) (*domain.User, er
 
 	return user, nil
 }
+
+// GetByEmail возвращает активного пользователя по email из test repository.
 func (r *fakeRepository) GetByEmail(_ context.Context, email domain.Email) (*domain.User, error) {
 	if r.err != nil {
 		return nil, r.err
@@ -62,20 +69,39 @@ func (r *fakeRepository) GetByEmail(_ context.Context, email domain.Email) (*dom
 
 	return nil, domain.ErrUserNotFound
 }
-func (r *fakeRepository) List(context.Context, int, int) ([]*domain.User, error) {
+
+// GetByUsername возвращает активного пользователя по username из test repository.
+func (r *fakeRepository) GetByUsername(_ context.Context, username domain.Username) (*domain.User, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+
+	for _, user := range r.users {
+		if user.Username() == username && user.DeletedAt() == nil {
+			return user, nil
+		}
+	}
+
+	return nil, domain.ErrUserNotFound
+}
+
+// List возвращает активных пользователей и имитирует простой поиск по email/username.
+func (r *fakeRepository) List(_ context.Context, search string, _, _ int) ([]*domain.User, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
 
 	result := make([]*domain.User, 0, len(r.users))
 	for _, user := range r.users {
-		if user.DeletedAt() == nil {
+		if user.DeletedAt() == nil && (search == "" || user.Username().String() == search || user.Email().String() == search) {
 			result = append(result, user)
 		}
 	}
 
 	return result, nil
 }
+
+// Update сохраняет изменения профиля в test repository.
 func (r *fakeRepository) Update(_ context.Context, user *domain.User) error {
 	if r.updateErr != nil {
 		return r.updateErr
@@ -89,6 +115,23 @@ func (r *fakeRepository) Update(_ context.Context, user *domain.User) error {
 
 	return nil
 }
+
+// UpdateRoles сохраняет изменения ролей в test repository.
+func (r *fakeRepository) UpdateRoles(_ context.Context, user *domain.User) error {
+	if r.updateErr != nil {
+		return r.updateErr
+	}
+
+	if r.err != nil {
+		return r.err
+	}
+
+	r.users[user.ID()] = user
+
+	return nil
+}
+
+// SoftDelete сохраняет soft delete состояние в test repository.
 func (r *fakeRepository) SoftDelete(_ context.Context, user *domain.User) error {
 	if r.deleteErr != nil {
 		return r.deleteErr
@@ -103,30 +146,62 @@ func (r *fakeRepository) SoftDelete(_ context.Context, user *domain.User) error 
 	return nil
 }
 
+// fakeIDs всегда возвращает один ID для коротких unit-сценариев.
 type fakeIDs struct{}
 
+// New возвращает фиксированный test user ID.
 func (fakeIDs) New() string { return "user-id" }
 
+// sequenceIDs возвращает ID по очереди для сценариев с несколькими пользователями.
+type sequenceIDs struct {
+	values []string
+	index  int
+}
+
+// New возвращает следующий ID из sequenceIDs.
+func (g *sequenceIDs) New() string {
+	if g.index >= len(g.values) {
+		return "user-id-extra"
+	}
+
+	value := g.values[g.index]
+	g.index++
+
+	return value
+}
+
+// fakeClock возвращает фиксированное время для стабильных тестов.
 type fakeClock struct{ now time.Time }
 
+// Now возвращает фиксированное UTC-время из fakeClock.
 func (c fakeClock) Now() time.Time { return c.now }
 
+// fakeTokens выпускает предсказуемые token values для unit-тестов.
 type fakeTokens struct{ err error }
 
-func (t fakeTokens) Issue(id string) (string, time.Time, error) {
+// Issue возвращает test token или заданную ошибку.
+func (t fakeTokens) Issue(id string, _ []string) (string, time.Time, error) {
 	return "token-" + id, time.Unix(100, 0), t.err
 }
+
+// Parse возвращает token как user ID для test contract.
 func (fakeTokens) Parse(token string) (string, error) { return token, nil }
 
+// brokenHasher имитирует ошибки password hashing и compare.
 type brokenHasher struct{}
 
-func (brokenHasher) Hash(string) (string, error)  { return "", errors.New("hash failed") }
+// Hash возвращает ошибку hashing для negative-тестов.
+func (brokenHasher) Hash(string) (string, error) { return "", errors.New("hash failed") }
+
+// Compare возвращает ошибку compare для negative-тестов.
 func (brokenHasher) Compare(string, string) error { return errors.New("compare failed") }
 
+// newService собирает UserService с test dependencies.
 func newService(repository *fakeRepository) *UserService {
 	return NewUserService(repository, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC)})
 }
 
+// TestRegisterLoginUpdateDelete проверяет основной пользовательский lifecycle без БД.
 func TestRegisterLoginUpdateDelete(t *testing.T) {
 	t.Parallel()
 
@@ -163,6 +238,7 @@ func TestRegisterLoginUpdateDelete(t *testing.T) {
 	}
 }
 
+// TestValidationAndConflicts проверяет валидацию регистрации и конфликты уникальности.
 func TestValidationAndConflicts(t *testing.T) {
 	t.Parallel()
 
@@ -197,10 +273,15 @@ func TestValidationAndConflicts(t *testing.T) {
 	}
 
 	if _, err := service.Login(ctx, LoginInput{Email: "none@example.com", Password: "password"}); !errors.Is(err, domain.ErrInvalidCredentials) {
-		t.Fatalf("expected invalid credentials, got %v", err)
+		t.Fatalf("expected unknown user login to fail, got %v", err)
+	}
+
+	if len(repository.users) != 1 {
+		t.Fatalf("login must not create users, got %d users", len(repository.users))
 	}
 }
 
+// TestUpdateValidationAndClearBirthDate проверяет validation update и явную очистку birth_date.
 func TestUpdateValidationAndClearBirthDate(t *testing.T) {
 	t.Parallel()
 
@@ -235,6 +316,7 @@ func TestUpdateValidationAndClearBirthDate(t *testing.T) {
 	}
 }
 
+// TestDependencyErrors проверяет, что ошибки зависимостей не проглатываются usecase-слоем.
 func TestDependencyErrors(t *testing.T) {
 	t.Parallel()
 
@@ -277,18 +359,187 @@ func TestDependencyErrors(t *testing.T) {
 	}
 }
 
+// TestListBoundsAndRepositoryErrors проверяет нормализацию pagination и ошибки repository при списке пользователей.
 func TestListBoundsAndRepositoryErrors(t *testing.T) {
 	t.Parallel()
 
 	repository := newFakeRepository()
 	service := newService(repository)
 
-	if users, err := service.List(context.Background(), -1, -1); err != nil || len(users) != 0 {
+	if users, err := service.List(context.Background(), ListUsersInput{Limit: -1, Offset: -1}); err != nil || len(users) != 0 {
 		t.Fatalf("List() = %v, %v", users, err)
 	}
 
 	repository.err = errors.New("database unavailable")
-	if _, err := service.List(context.Background(), 200, 0); err == nil {
+	if _, err := service.List(context.Background(), ListUsersInput{Limit: 200}); err == nil {
 		t.Fatal("expected repository error")
+	}
+}
+
+// TestBootstrapSuperuserCannotBeDemoted проверяет защиту bootstrap-суперпользователя от демоушена.
+func TestBootstrapSuperuserCannotBeDemoted(t *testing.T) {
+	t.Parallel()
+
+	repository := newFakeRepository()
+	service := newService(repository)
+	ctx := context.Background()
+
+	err := service.EnsureBootstrapSuperuser(ctx, BootstrapSuperuserInput{
+		Email:    "admin@example.com",
+		Password: "password",
+		Username: "superadmin",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user, err := service.Get(ctx, "user-id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !user.IsSuperuser() || !user.IsAdmin() {
+		t.Fatalf("expected superuser admin, got roles=%v superuser=%v", user.Roles(), user.IsSuperuser())
+	}
+
+	_, err = service.SetAdmin(ctx, SetAdminInput{
+		ActorID: "user-id",
+		UserID:  "user-id",
+		Admin:   false,
+	})
+	if !errors.Is(err, domain.ErrCannotDemoteSuperuser) {
+		t.Fatalf("expected cannot demote superuser, got %v", err)
+	}
+}
+
+// TestAdminCanPromoteRegularUser проверяет назначение и снятие admin обычному пользователю.
+func TestAdminCanPromoteRegularUser(t *testing.T) {
+	t.Parallel()
+
+	repository := newFakeRepository()
+	ids := &sequenceIDs{values: []string{"admin-id", "student-id"}}
+	service := NewUserService(repository, security.PlainTextHasher{}, fakeTokens{}, ids, fakeClock{time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC)})
+	ctx := context.Background()
+
+	if err := service.EnsureBootstrapSuperuser(ctx, BootstrapSuperuserInput{
+		Email:    "admin@example.com",
+		Password: "password",
+		Username: "superadmin",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	student, err := service.Register(ctx, RegisterInput{
+		Email:    "student@example.com",
+		Password: "password",
+		Username: "student",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.SetAdmin(ctx, SetAdminInput{
+		ActorID: student.User.ID(),
+		UserID:  "admin-id",
+		Admin:   false,
+	}); !errors.Is(err, domain.ErrPermissionDenied) {
+		t.Fatalf("expected regular user to be denied, got %v", err)
+	}
+
+	promoted, err := service.SetAdminByUsername(ctx, SetAdminByUsernameInput{
+		ActorID:  "admin-id",
+		Username: "student",
+		Admin:    true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !promoted.IsAdmin() || promoted.IsSuperuser() {
+		t.Fatalf("expected promoted regular admin, got roles=%v superuser=%v", promoted.Roles(), promoted.IsSuperuser())
+	}
+
+	demoted, err := service.SetAdmin(ctx, SetAdminInput{
+		ActorID: "admin-id",
+		UserID:  "student-id",
+		Admin:   false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if demoted.IsAdmin() {
+		t.Fatalf("expected regular admin role to be removed, got roles=%v", demoted.Roles())
+	}
+}
+
+// TestBootstrapPromotesExistingUserAndValidatesInput проверяет идемпотентный bootstrap существующего пользователя.
+func TestBootstrapPromotesExistingUserAndValidatesInput(t *testing.T) {
+	t.Parallel()
+
+	repository := newFakeRepository()
+	service := newService(repository)
+	ctx := context.Background()
+
+	if _, err := service.Register(ctx, RegisterInput{
+		Email:    "regular@example.com",
+		Password: "password",
+		Username: "regular",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := service.EnsureBootstrapSuperuser(ctx, BootstrapSuperuserInput{
+		Email:    "regular@example.com",
+		Password: "password",
+		Username: "regular",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	user, err := service.GetByUsername(ctx, "regular")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !user.IsSuperuser() || !user.IsAdmin() {
+		t.Fatalf("expected existing user to remain superuser, got roles=%v", user.Roles())
+	}
+
+	if err := service.EnsureBootstrapSuperuser(ctx, BootstrapSuperuserInput{
+		Email:    "invalid@example.com",
+		Password: "short",
+		Username: "invalid",
+	}); !errors.Is(err, domain.ErrInvalidPassword) {
+		t.Fatalf("expected invalid bootstrap password, got %v", err)
+	}
+
+	if err := service.EnsureBootstrapSuperuser(ctx, BootstrapSuperuserInput{}); err != nil {
+		t.Fatalf("empty bootstrap config must be ignored, got %v", err)
+	}
+}
+
+// TestAdminLookupErrors проверяет ошибки поиска и проверки admin actor.
+func TestAdminLookupErrors(t *testing.T) {
+	t.Parallel()
+
+	repository := newFakeRepository()
+	service := newService(repository)
+	ctx := context.Background()
+
+	if _, err := service.GetByUsername(ctx, "!"); !errors.Is(err, domain.ErrInvalidUsername) {
+		t.Fatalf("expected invalid username, got %v", err)
+	}
+
+	if err := service.RequireAdmin(ctx, ""); !errors.Is(err, domain.ErrUnauthorized) {
+		t.Fatalf("expected unauthorized, got %v", err)
+	}
+
+	if err := service.RequireAdmin(ctx, "missing"); err == nil {
+		t.Fatal("expected missing actor error")
+	}
+
+	if _, err := service.SetAdminByUsername(ctx, SetAdminByUsernameInput{
+		ActorID:  "missing",
+		Username: "unknown",
+		Admin:    true,
+	}); err == nil {
+		t.Fatal("expected missing target error")
 	}
 }

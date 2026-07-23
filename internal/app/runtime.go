@@ -11,21 +11,25 @@ import (
 	graphqldelivery "github.com/overmindv/arcee/internal/delivery/graphql"
 )
 
+// Runtime управляет жизненным циклом HTTP-server Arcee.
 type Runtime struct{ container *Container }
 
+// NewRuntime создаёт runtime из готового dependency container.
 func NewRuntime(container *Container) *Runtime {
 	return &Runtime{container: container}
 }
 
+// Run запускает HTTP-server и корректно завершает его по cancellation context.
 func (r *Runtime) Run(ctx context.Context) error {
 	listener, err := net.Listen("tcp", r.container.Config.HTTP.Address)
 	if err != nil {
 		return fmt.Errorf("listen HTTP: %w", err)
 	}
 
-	handler := graphqldelivery.Handler(&graphqldelivery.Resolver{Users: r.container.Users}, r.container.DB)
+	handler := graphqldelivery.Handler(&graphqldelivery.Resolver{Users: r.container.Users}, r.container.DB, r.container.Log)
 	server := &http.Server{
-		Handler: auth.OptionalHTTP(r.container.JWT, handler), ReadTimeout: r.container.Config.HTTP.ReadTimeout,
+		Handler:      auth.OptionalHTTP(r.container.JWT, handler),
+		ReadTimeout:  r.container.Config.HTTP.ReadTimeout,
 		WriteTimeout: r.container.Config.HTTP.WriteTimeout,
 	}
 

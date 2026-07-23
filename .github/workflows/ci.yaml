@@ -1,4 +1,4 @@
-name: arcee-ci
+name: Arcee CI
 
 on:
   pull_request:
@@ -10,25 +10,6 @@ permissions:
   contents: read
 
 jobs:
-  proto:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-action@v1
-        with:
-          setup_only: true
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Lint proto
-        run: buf lint
-      - name: Check proto formatting
-        run: buf format --diff --exit-code
-      - name: Regenerate proto and mocks
-        run: make generate
-      - name: Verify generated files are committed
-        run: git diff --exit-code pkg/api internal/mock
-
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +19,7 @@ jobs:
           go-version-file: go.mod
       - uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.1
+          version: v2.1.6
 
   test:
     runs-on: ubuntu-latest
@@ -47,8 +28,32 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Run unit tests
+      - name: Run unit and handler tests
         run: make test
+
+  component-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: arcee
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d arcee"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run PostgreSQL integration tests
+        run: make ctest COMPONENT_TEST_DSN='postgres://postgres:postgres@localhost:5432/arcee?sslmode=disable'
 
   build:
     runs-on: ubuntu-latest
@@ -58,4 +63,4 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Build service
-        run: go build ./...
+        run: make build

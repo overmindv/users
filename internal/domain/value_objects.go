@@ -12,8 +12,10 @@ var (
 	usernamePattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_.]{2,31}$`)
 )
 
+// Email хранит нормализованный email пользователя.
 type Email string
 
+// NewEmail создаёт value object email с проверкой формата и длины.
 func NewEmail(value string) (Email, error) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	parsed, err := mail.ParseAddress(normalized)
@@ -24,10 +26,13 @@ func NewEmail(value string) (Email, error) {
 	return Email(normalized), nil
 }
 
+// String возвращает email как строку.
 func (e Email) String() string { return string(e) }
 
+// Phone хранит телефон пользователя в международном формате.
 type Phone string
 
+// NewPhone создаёт value object телефона и разрешает пустое значение для необязательного поля профиля.
 func NewPhone(value string) (Phone, error) {
 	normalized := strings.TrimSpace(value)
 	if normalized == "" {
@@ -41,10 +46,13 @@ func NewPhone(value string) (Phone, error) {
 	return Phone(normalized), nil
 }
 
+// String возвращает телефон как строку.
 func (p Phone) String() string { return string(p) }
 
+// Username хранит публичное имя пользователя.
 type Username string
 
+// NewUsername создаёт value object username с приведением к нижнему регистру и проверкой допустимых символов.
 func NewUsername(value string) (Username, error) {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	if !usernamePattern.MatchString(normalized) {
@@ -54,4 +62,5 @@ func NewUsername(value string) (Username, error) {
 	return Username(normalized), nil
 }
 
+// String возвращает username как строку.
 func (u Username) String() string { return string(u) }

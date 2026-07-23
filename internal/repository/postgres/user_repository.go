@@ -12,38 +12,57 @@ import (
 	"github.com/overmindv/arcee/internal/domain"
 )
 
-const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, created_at, updated_at, deleted_at`
+const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, roles, is_superuser, created_at, updated_at, deleted_at`
 
+// UserRepository хранит пользователей в PostgreSQL.
 type UserRepository struct{ pool *pgxpool.Pool }
 
+// NewUserRepository создаёт PostgreSQL repository поверх готового pgx pool.
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{pool: pool}
 }
 
+// Create вставляет нового активного пользователя.
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO users (id, email, password_hash, username, first_name, last_name, birth_date, phone, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), $9, $10)`,
+		INSERT INTO users (id, email, password_hash, username, first_name, last_name, birth_date, phone, roles, is_superuser, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), $9, $10, $11, $12)`,
 		user.ID(), user.Email().String(), user.PasswordHash(), user.Username().String(), user.FirstName(), user.LastName(),
-		user.BirthDate(), user.Phone().String(), user.CreatedAt(), user.UpdatedAt())
+		user.BirthDate(), user.Phone().String(), user.Roles(), user.IsSuperuser(), user.CreatedAt(), user.UpdatedAt())
 
 	return mapError(err)
 }
 
+// GetByID возвращает активного пользователя по ID.
 func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	row := r.pool.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE id = $1 AND deleted_at IS NULL`, id)
 
 	return scanUser(row)
 }
 
+// GetByEmail возвращает активного пользователя по email.
 func (r *UserRepository) GetByEmail(ctx context.Context, email domain.Email) (*domain.User, error) {
 	row := r.pool.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE email = $1 AND deleted_at IS NULL`, email.String())
 
 	return scanUser(row)
 }
 
-func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*domain.User, error) {
-	rows, err := r.pool.Query(ctx, `SELECT `+userColumns+` FROM users WHERE deleted_at IS NULL ORDER BY created_at, id LIMIT $1 OFFSET $2`, limit, offset)
+// GetByUsername возвращает активного пользователя по username.
+func (r *UserRepository) GetByUsername(ctx context.Context, username domain.Username) (*domain.User, error) {
+	row := r.pool.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE username = $1 AND deleted_at IS NULL`, username.String())
+
+	return scanUser(row)
+}
+
+// List возвращает активных пользователей с поиском по email или username.
+func (r *UserRepository) List(ctx context.Context, search string, limit, offset int) ([]*domain.User, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+userColumns+`
+		FROM users
+		WHERE deleted_at IS NULL
+		  AND ($1 = '' OR username ILIKE '%' || $1 || '%' OR email ILIKE '%' || $1 || '%')
+		ORDER BY created_at, id
+		LIMIT $2 OFFSET $3`, search, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("query users: %w", err)
 	}
@@ -65,6 +84,7 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*domain
 	return users, nil
 }
 
+// Update сохраняет изменяемые поля профиля пользователя.
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	result, err := r.pool.Exec(ctx, `
 		UPDATE users SET username=$2, first_name=$3, last_name=$4, birth_date=$5, phone=NULLIF($6, ''), updated_at=$7
@@ -81,6 +101,23 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
+// UpdateRoles сохраняет роли пользователя и флаг суперпользователя.
+func (r *UserRepository) UpdateRoles(ctx context.Context, user *domain.User) error {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE users SET roles=$2, is_superuser=$3, updated_at=$4
+		WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.Roles(), user.IsSuperuser(), user.UpdatedAt())
+	if err != nil {
+		return fmt.Errorf("update user roles: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+// SoftDelete сохраняет soft delete пользователя.
 func (r *UserRepository) SoftDelete(ctx context.Context, user *domain.User) error {
 	result, err := r.pool.Exec(ctx, `UPDATE users SET deleted_at=$2, updated_at=$3 WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.DeletedAt(), user.UpdatedAt())
 	if err != nil {
@@ -94,15 +131,19 @@ func (r *UserRepository) SoftDelete(ctx context.Context, user *domain.User) erro
 	return nil
 }
 
+// scanner описывает общий contract pgx.Row и pgx.Rows для scanUser.
 type scanner interface{ Scan(...any) error }
 
+// scanUser восстанавливает доменную модель пользователя из строки PostgreSQL.
 func scanUser(row scanner) (*domain.User, error) {
 	var id, emailValue, passwordHash, usernameValue, firstName, lastName string
 	var birthDate, deletedAt *time.Time
 	var phoneValue *string
+	var roles []string
+	var isSuperuser bool
 	var createdAt, updatedAt time.Time
 
-	if err := row.Scan(&id, &emailValue, &passwordHash, &usernameValue, &firstName, &lastName, &birthDate, &phoneValue, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := row.Scan(&id, &emailValue, &passwordHash, &usernameValue, &firstName, &lastName, &birthDate, &phoneValue, &roles, &isSuperuser, &createdAt, &updatedAt, &deletedAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
 		}
@@ -127,6 +168,7 @@ func scanUser(row scanner) (*domain.User, error) {
 		}
 	}
 
+	// Повторно создаём value objects, чтобы повреждённые данные в БД не попали выше repository слоя.
 	return domain.RestoreUser(domain.RestoreUserParams{
 		NewUserParams: domain.NewUserParams{
 			ID:           id,
@@ -137,6 +179,8 @@ func scanUser(row scanner) (*domain.User, error) {
 			LastName:     lastName,
 			BirthDate:    birthDate,
 			Phone:        phone,
+			Roles:        roles,
+			IsSuperuser:  isSuperuser,
 		},
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
@@ -144,6 +188,7 @@ func scanUser(row scanner) (*domain.User, error) {
 	}), nil
 }
 
+// mapError переводит ошибки PostgreSQL constraint в доменные ошибки Arcee.
 func mapError(err error) error {
 	if err == nil {
 		return nil
@@ -151,6 +196,7 @@ func mapError(err error) error {
 
 	var postgresError *pgconn.PgError
 	if errors.As(err, &postgresError) && postgresError.Code == "23505" {
+		// Имя constraint используется для стабильного выбора бизнес-ошибки при конфликте уникальности.
 		switch postgresError.ConstraintName {
 		case "users_email_active_key":
 			return domain.ErrEmailAlreadyExists

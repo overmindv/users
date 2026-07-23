@@ -6,3 +6,4 @@ data:
   PORT: "8080"
   JWT_ISSUER: "arcee"
   JWT_TTL: "24h"
+  BOOTSTRAP_SUPERUSER_USERNAME: "superadmin"

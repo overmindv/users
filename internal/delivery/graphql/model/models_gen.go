@@ -39,13 +39,16 @@ type UpdateUserInput struct {
 }
 
 type User struct {
-	ID        string  `json:"id"`
-	Email     string  `json:"email"`
-	Username  string  `json:"username"`
-	FirstName string  `json:"firstName"`
-	LastName  string  `json:"lastName"`
-	BirthDate *string `json:"birthDate,omitempty"`
-	Phone     *string `json:"phone,omitempty"`
-	CreatedAt string  `json:"createdAt"`
-	UpdatedAt string  `json:"updatedAt"`
+	ID          string   `json:"id"`
+	Email       string   `json:"email"`
+	Username    string   `json:"username"`
+	FirstName   string   `json:"firstName"`
+	LastName    string   `json:"lastName"`
+	BirthDate   *string  `json:"birthDate,omitempty"`
+	Phone       *string  `json:"phone,omitempty"`
+	Roles       []string `json:"roles"`
+	IsAdmin     bool     `json:"isAdmin"`
+	IsSuperuser bool     `json:"isSuperuser"`
+	CreatedAt   string   `json:"createdAt"`
+	UpdatedAt   string   `json:"updatedAt"`
 }
