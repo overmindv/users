@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// TestValueObjects проверяет нормализацию и валидацию email, phone и username.
 func TestValueObjects(t *testing.T) {
 	t.Parallel()
 
@@ -38,6 +39,7 @@ func TestValueObjects(t *testing.T) {
 	}
 }
 
+// TestRestoreAndAllProfileFields проверяет восстановление пользователя и обновление всех полей профиля.
 func TestRestoreAndAllProfileFields(t *testing.T) {
 	t.Parallel()
 
@@ -49,8 +51,19 @@ func TestRestoreAndAllProfileFields(t *testing.T) {
 	phone, _ := NewPhone("+79991234567")
 
 	user := RestoreUser(RestoreUserParams{
-		NewUserParams: NewUserParams{ID: "id", Email: email, PasswordHash: "password", Username: username, FirstName: "A", LastName: "B", BirthDate: &birthDate, Phone: phone},
-		CreatedAt:     now, UpdatedAt: now, DeletedAt: &deletedAt,
+		NewUserParams: NewUserParams{
+			ID:           "id",
+			Email:        email,
+			PasswordHash: "password",
+			Username:     username,
+			FirstName:    "A",
+			LastName:     "B",
+			BirthDate:    &birthDate,
+			Phone:        phone,
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+		DeletedAt: &deletedAt,
 	})
 	if user.ID() != "id" || user.Email() != email || user.PasswordHash() != "password" || user.Username() != username || user.LastName() != "B" || user.BirthDate() == nil || user.CreatedAt() != now || user.UpdatedAt() != now || user.DeletedAt() == nil {
 		t.Fatalf("restored user does not preserve state")
@@ -74,6 +87,7 @@ func TestRestoreAndAllProfileFields(t *testing.T) {
 	}
 }
 
+// TestUserRejectsInvalidNamesOnCreateAndUpdate проверяет ограничения длины имени и фамилии.
 func TestUserRejectsInvalidNamesOnCreateAndUpdate(t *testing.T) {
 	t.Parallel()
 
@@ -87,6 +101,10 @@ func TestUserRejectsInvalidNamesOnCreateAndUpdate(t *testing.T) {
 	}
 
 	user, _ := NewUser(NewUserParams{ID: "id", Email: email, Username: username, PasswordHash: "password", Now: now})
+	if user.Roles() == nil {
+		t.Fatal("empty user roles must be encoded as an empty slice, not nil")
+	}
+
 	if err := user.UpdateProfile(ProfilePatch{LastName: &longName}, now); !errors.Is(err, ErrInvalidName) {
 		t.Fatalf("expected invalid last name, got %v", err)
 	}
@@ -98,6 +116,7 @@ func TestUserRejectsInvalidNamesOnCreateAndUpdate(t *testing.T) {
 	}
 }
 
+// TestNewUserRequiresAggregateIdentity проверяет обязательные поля aggregate при создании пользователя.
 func TestNewUserRequiresAggregateIdentity(t *testing.T) {
 	t.Parallel()
 
@@ -110,10 +129,46 @@ func TestNewUserRequiresAggregateIdentity(t *testing.T) {
 		params NewUserParams
 		want   error
 	}{
-		{"id", NewUserParams{Email: email, Username: username, PasswordHash: "password", Now: now}, ErrInvalidUserID},
-		{"email", NewUserParams{ID: "id", Username: username, PasswordHash: "password", Now: now}, ErrInvalidEmail},
-		{"username", NewUserParams{ID: "id", Email: email, PasswordHash: "password", Now: now}, ErrInvalidUsername},
-		{"password", NewUserParams{ID: "id", Email: email, Username: username, Now: now}, ErrInvalidPassword},
+		{
+			name: "id",
+			params: NewUserParams{
+				Email:        email,
+				Username:     username,
+				PasswordHash: "password",
+				Now:          now,
+			},
+			want: ErrInvalidUserID,
+		},
+		{
+			name: "email",
+			params: NewUserParams{
+				ID:           "id",
+				Username:     username,
+				PasswordHash: "password",
+				Now:          now,
+			},
+			want: ErrInvalidEmail,
+		},
+		{
+			name: "username",
+			params: NewUserParams{
+				ID:           "id",
+				Email:        email,
+				PasswordHash: "password",
+				Now:          now,
+			},
+			want: ErrInvalidUsername,
+		},
+		{
+			name: "password",
+			params: NewUserParams{
+				ID:       "id",
+				Email:    email,
+				Username: username,
+				Now:      now,
+			},
+			want: ErrInvalidPassword,
+		},
 	}
 
 	for _, test := range tests {
@@ -125,6 +180,7 @@ func TestNewUserRequiresAggregateIdentity(t *testing.T) {
 	}
 }
 
+// TestUserUpdateAndDelete проверяет обновление профиля и soft delete пользователя.
 func TestUserUpdateAndDelete(t *testing.T) {
 	t.Parallel()
 
@@ -153,6 +209,53 @@ func TestUserUpdateAndDelete(t *testing.T) {
 	}
 }
 
+// TestUserRolesAndAdminState проверяет нормализацию ролей и правила admin/superuser.
+func TestUserRolesAndAdminState(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 7, 18, 12, 0, 0, 0, time.UTC)
+	email, _ := NewEmail("user@example.com")
+	username, _ := NewUsername("alice")
+	user, err := NewUser(NewUserParams{
+		ID:           "id",
+		Email:        email,
+		Username:     username,
+		PasswordHash: "password",
+		Roles:        []string{" admin ", "ADMIN", ""},
+		Now:          now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !user.IsAdmin() || user.IsSuperuser() || len(user.Roles()) != 1 {
+		t.Fatalf("expected regular admin role, got roles=%v superuser=%v", user.Roles(), user.IsSuperuser())
+	}
+
+	roles := user.Roles()
+	roles[0] = "changed"
+	if user.Roles()[0] != RoleAdmin {
+		t.Fatal("Roles() must return a defensive copy")
+	}
+
+	if err := user.SetAdmin(false, now.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if user.IsAdmin() {
+		t.Fatalf("expected admin role to be removed, got %v", user.Roles())
+	}
+
+	user.PromoteSuperuser(now.Add(2 * time.Hour))
+	if !user.IsSuperuser() || !user.IsAdmin() {
+		t.Fatalf("expected superuser to be admin, got roles=%v", user.Roles())
+	}
+
+	if err := user.SetAdmin(false, now.Add(3*time.Hour)); !errors.Is(err, ErrCannotDemoteSuperuser) {
+		t.Fatalf("expected superuser demotion to fail, got %v", err)
+	}
+}
+
+// TestUserRejectsFutureBirthDate проверяет запрет даты рождения в будущем.
 func TestUserRejectsFutureBirthDate(t *testing.T) {
 	t.Parallel()
 

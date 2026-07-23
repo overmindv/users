@@ -7,9 +7,12 @@ linters:
   default: none
   enable:
     - errcheck
-    - gofmt
-    - goimports
     - govet
     - ineffassign
     - staticcheck
     - unused
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

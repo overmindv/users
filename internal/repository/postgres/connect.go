@@ -8,6 +8,7 @@ import (
 	"github.com/overmindv/arcee/internal/config"
 )
 
+// Open создаёт pgx pool, применяет настройки connection pool и проверяет доступность PostgreSQL.
 func Open(ctx context.Context, cfg config.Database) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(cfg.DSN)
 	if err != nil {

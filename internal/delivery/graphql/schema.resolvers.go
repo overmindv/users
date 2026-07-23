@@ -14,16 +14,20 @@ import (
 	"github.com/overmindv/arcee/internal/usecase"
 )
 
-// Register is the resolver for the register field.
+// Register обрабатывает публичную регистрацию пользователя.
 func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error) {
 	birthDate, err := parseBirthDate(input.BirthDate)
 	if err != nil {
 		return nil, err
 	}
 	result, err := r.Users.Register(ctx, usecase.RegisterInput{
-		Email: input.Email, Password: input.Password, Username: input.Username,
-		FirstName: stringValue(input.FirstName), LastName: stringValue(input.LastName),
-		BirthDate: birthDate, Phone: stringValue(input.Phone),
+		Email:     input.Email,
+		Password:  input.Password,
+		Username:  input.Username,
+		FirstName: stringValue(input.FirstName),
+		LastName:  stringValue(input.LastName),
+		BirthDate: birthDate,
+		Phone:     stringValue(input.Phone),
 	})
 	if err != nil {
 		return nil, err
@@ -31,22 +35,27 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 	return toAuthPayload(result), nil
 }
 
-// Login is the resolver for the login field.
+// Login обрабатывает публичный вход пользователя.
 func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
-	result, err := r.Users.Login(ctx, usecase.LoginInput{Email: input.Email, Password: input.Password})
+	result, err := r.Users.Login(ctx, usecase.LoginInput{
+		Email:    input.Email,
+		Password: input.Password,
+	})
 	if err != nil {
 		return nil, err
 	}
+
 	return toAuthPayload(result), nil
 }
 
-// UpdateUser is the resolver for the updateUser field.
+// UpdateUser обновляет профиль только текущего авторизованного пользователя.
 func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input model.UpdateUserInput) (*model.User, error) {
 	actorID, err := auth.UserIDFromContext(ctx)
 	if err != nil || actorID != id {
 		if err == nil {
 			err = domain.ErrUnauthorized
 		}
+
 		return nil, err
 	}
 	birthDate, err := parseBirthDate(input.BirthDate)
@@ -54,31 +63,75 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		return nil, err
 	}
 	user, err := r.Users.Update(ctx, usecase.UpdateUserInput{
-		ID: id, Username: input.Username, FirstName: input.FirstName, LastName: input.LastName,
-		BirthDate: birthDate, ClearBirthDate: boolValue(input.ClearBirthDate), Phone: input.Phone,
+		ID:             id,
+		Username:       input.Username,
+		FirstName:      input.FirstName,
+		LastName:       input.LastName,
+		BirthDate:      birthDate,
+		ClearBirthDate: boolValue(input.ClearBirthDate),
+		Phone:          input.Phone,
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	return toUser(user), nil
 }
 
-// DeleteUser is the resolver for the deleteUser field.
+// DeleteUser выполняет soft delete только текущего авторизованного пользователя.
 func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, error) {
 	actorID, err := auth.UserIDFromContext(ctx)
 	if err != nil || actorID != id {
 		if err == nil {
 			err = domain.ErrUnauthorized
 		}
+
 		return false, err
 	}
 	if err := r.Users.Delete(ctx, id); err != nil {
 		return false, err
 	}
+
 	return true, nil
 }
 
-// Me is the resolver for the me field.
+// SetUserAdmin меняет роль admin у пользователя по ID после проверки прав actor.
+func (r *mutationResolver) SetUserAdmin(ctx context.Context, id string, admin bool) (*model.User, error) {
+	actorID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := r.Users.SetAdmin(ctx, usecase.SetAdminInput{
+		ActorID: actorID,
+		UserID:  id,
+		Admin:   admin,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toUser(user), nil
+}
+
+// SetUserAdminByUsername меняет роль admin у пользователя по username после проверки прав actor.
+func (r *mutationResolver) SetUserAdminByUsername(ctx context.Context, username string, admin bool) (*model.User, error) {
+	actorID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := r.Users.SetAdminByUsername(ctx, usecase.SetAdminByUsernameInput{
+		ActorID:  actorID,
+		Username: username,
+		Admin:    admin,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toUser(user), nil
+}
+
+// Me возвращает профиль текущего авторизованного пользователя.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	id, err := auth.UserIDFromContext(ctx)
 	if err != nil {
@@ -88,10 +141,11 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return toUser(user), nil
 }
 
-// User is the resolver for the user field.
+// User возвращает пользователя по ID для авторизованного actor.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
 	if _, err := auth.UserIDFromContext(ctx); err != nil {
 		return nil, err
@@ -100,15 +154,43 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 	if err != nil {
 		return nil, err
 	}
+
 	return toUser(user), nil
 }
 
-// Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*model.User, error) {
-	if _, err := auth.UserIDFromContext(ctx); err != nil {
+// UserByUsername возвращает пользователя по username только для администратора.
+func (r *queryResolver) UserByUsername(ctx context.Context, username string) (*model.User, error) {
+	actorID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
 		return nil, err
 	}
-	users, err := r.Resolver.Users.List(ctx, intValue(limit, 20), intValue(offset, 0))
+	if err := r.Resolver.Users.RequireAdmin(ctx, actorID); err != nil {
+		return nil, err
+	}
+	// Достаём пользователя только после проверки admin, чтобы обычные пользователи не могли перебирать username.
+	user, err := r.Resolver.Users.GetByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+
+	return toUser(user), nil
+}
+
+// Users возвращает список пользователей только для администратора.
+func (r *queryResolver) Users(ctx context.Context, search *string, limit *int, offset *int) ([]*model.User, error) {
+	actorID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := r.Resolver.Users.RequireAdmin(ctx, actorID); err != nil {
+		return nil, err
+	}
+	// Список пользователей нужен для админки, поэтому pagination нормализуется в usecase после проверки прав.
+	users, err := r.Resolver.Users.List(ctx, usecase.ListUsersInput{
+		Search: stringValue(search),
+		Limit:  intValue(limit, 20),
+		Offset: intValue(offset, 0),
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -116,14 +198,18 @@ func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) ([]*
 	for _, user := range users {
 		result = append(result, toUser(user))
 	}
+
 	return result, nil
 }
 
-// Mutation returns generated.MutationResolver implementation.
+// Mutation возвращает реализацию GraphQL mutations для gqlgen.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
+// Query возвращает реализацию GraphQL queries для gqlgen.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// mutationResolver связывает generated mutation contract с root Resolver.
 type mutationResolver struct{ *Resolver }
+
+// queryResolver связывает generated query contract с root Resolver.
 type queryResolver struct{ *Resolver }

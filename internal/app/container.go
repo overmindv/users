@@ -15,6 +15,7 @@ import (
 	"github.com/overmindv/arcee/internal/usecase"
 )
 
+// Container хранит собранные зависимости Arcee для runtime-слоя.
 type Container struct {
 	Config config.Config
 	Log    *slog.Logger
@@ -28,6 +29,7 @@ var (
 	tokenProvider    singleton.Provider[*auth.Manager]
 )
 
+// NewContainer создаёт dependency container, открывает БД, настраивает JWT и выполняет bootstrap суперпользователя.
 func NewContainer(ctx context.Context, cfg config.Config, log *slog.Logger) (*Container, error) {
 	db, err := databaseProvider.Get(func() (*pgxpool.Pool, error) {
 		return postgresrepo.Open(ctx, cfg.Database)
@@ -47,6 +49,17 @@ func NewContainer(ctx context.Context, cfg config.Config, log *slog.Logger) (*Co
 	repository := postgresrepo.NewUserRepository(db)
 
 	users := usecase.NewUserService(repository, security.PlainTextHasher{}, jwtManager, uuidGenerator{}, systemClock{})
+	// Bootstrap выполняется при сборке container, чтобы первый админ был доступен до старта HTTP-server.
+	if err := users.EnsureBootstrapSuperuser(ctx, usecase.BootstrapSuperuserInput{
+		Email:     cfg.Bootstrap.SuperuserEmail,
+		Password:  cfg.Bootstrap.SuperuserPassword,
+		Username:  cfg.Bootstrap.SuperuserUsername,
+		FirstName: cfg.Bootstrap.SuperuserFirstName,
+		LastName:  cfg.Bootstrap.SuperuserLastName,
+	}); err != nil {
+		db.Close()
+		return nil, err
+	}
 
 	return &Container{
 		Config: cfg,
@@ -57,12 +70,17 @@ func NewContainer(ctx context.Context, cfg config.Config, log *slog.Logger) (*Co
 	}, nil
 }
 
+// Close закрывает внешние ресурсы container.
 func (c *Container) Close() { c.DB.Close() }
 
+// uuidGenerator создаёт UUID для новых пользователей.
 type uuidGenerator struct{}
 
+// New возвращает новый UUID string.
 func (uuidGenerator) New() string { return uuid.NewString() }
 
+// systemClock отдаёт текущее UTC-время для доменной логики.
 type systemClock struct{}
 
+// Now возвращает текущее время в UTC.
 func (systemClock) Now() time.Time { return time.Now().UTC() }

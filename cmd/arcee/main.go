@@ -11,6 +11,7 @@ import (
 	"github.com/overmindv/arcee/internal/config"
 )
 
+// main загружает конфигурацию, собирает container и запускает HTTP runtime Arcee.
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 

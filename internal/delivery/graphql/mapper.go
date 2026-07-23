@@ -8,6 +8,7 @@ import (
 	"github.com/overmindv/arcee/internal/usecase"
 )
 
+// parseBirthDate переводит GraphQL date string в domain date.
 func parseBirthDate(value *string) (*time.Time, error) {
 	if value == nil {
 		return nil, nil
@@ -21,6 +22,7 @@ func parseBirthDate(value *string) (*time.Time, error) {
 	return &parsed, nil
 }
 
+// toUser преобразует доменного пользователя в GraphQL model.
 func toUser(user *domain.User) *model.User {
 	var birthDate, phone *string
 	if value := user.BirthDate(); value != nil {
@@ -33,18 +35,22 @@ func toUser(user *domain.User) *model.User {
 	}
 
 	return &model.User{
-		ID:        user.ID(),
-		Email:     user.Email().String(),
-		Username:  user.Username().String(),
-		FirstName: user.FirstName(),
-		LastName:  user.LastName(),
-		BirthDate: birthDate,
-		Phone:     phone,
-		CreatedAt: user.CreatedAt().Format(time.RFC3339),
-		UpdatedAt: user.UpdatedAt().Format(time.RFC3339),
+		ID:          user.ID(),
+		Email:       user.Email().String(),
+		Username:    user.Username().String(),
+		FirstName:   user.FirstName(),
+		LastName:    user.LastName(),
+		BirthDate:   birthDate,
+		Phone:       phone,
+		Roles:       user.Roles(),
+		IsAdmin:     user.IsAdmin(),
+		IsSuperuser: user.IsSuperuser(),
+		CreatedAt:   user.CreatedAt().Format(time.RFC3339),
+		UpdatedAt:   user.UpdatedAt().Format(time.RFC3339),
 	}
 }
 
+// toAuthPayload преобразует результат usecase в GraphQL auth payload.
 func toAuthPayload(result *usecase.AuthResult) *model.AuthPayload {
 	return &model.AuthPayload{
 		User:      toUser(result.User),
@@ -53,6 +59,7 @@ func toAuthPayload(result *usecase.AuthResult) *model.AuthPayload {
 	}
 }
 
+// stringValue возвращает строку из nullable GraphQL поля.
 func stringValue(value *string) string {
 	if value == nil {
 		return ""
@@ -61,10 +68,12 @@ func stringValue(value *string) string {
 	return *value
 }
 
+// boolValue возвращает bool из nullable GraphQL поля.
 func boolValue(value *bool) bool {
 	return value != nil && *value
 }
 
+// intValue возвращает int из nullable GraphQL поля или fallback.
 func intValue(value *int, fallback int) int {
 	if value == nil {
 		return fallback

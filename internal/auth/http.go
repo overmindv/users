@@ -4,8 +4,8 @@ import (
 	"net/http"
 )
 
-// OptionalHTTP validates a token when present. Resolver guards enforce auth for
-// every operation except register/login on the shared GraphQL endpoint.
+// OptionalHTTP проверяет JWT, если Authorization header присутствует.
+// Resolver-методы отдельно запрещают доступ к операциям, где пользователь обязателен.
 func OptionalHTTP(manager *Manager, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")

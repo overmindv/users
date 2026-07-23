@@ -1,6 +1,6 @@
 //go:build component
 
-package component
+package integration
 
 import (
 	"context"
@@ -18,14 +18,19 @@ import (
 	"github.com/overmindv/arcee/internal/usecase"
 )
 
+// ids создаёт реальные UUID для PostgreSQL component-теста.
 type ids struct{}
 
+// New возвращает новый UUID string.
 func (ids) New() string { return uuid.NewString() }
 
+// clock возвращает текущее UTC-время для PostgreSQL component-теста.
 type clock struct{}
 
+// Now возвращает текущее время в UTC.
 func (clock) Now() time.Time { return time.Now().UTC() }
 
+// TestRegistrationLoginProfileUpdateAndSoftDelete проверяет user lifecycle через PostgreSQL repository.
 func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	dsn := os.Getenv("COMPONENT_TEST_DSN")
 	if dsn == "" {
@@ -33,7 +38,12 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	pool, err := postgresrepo.Open(ctx, config.Database{DSN: dsn, MaxConnections: 5, MinConnections: 1, MaxConnLifetime: time.Minute})
+	pool, err := postgresrepo.Open(ctx, config.Database{
+		DSN:             dsn,
+		MaxConnections:  5,
+		MinConnections:  1,
+		MaxConnLifetime: time.Minute,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +55,12 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 
 	repository := postgresrepo.NewUserRepository(pool)
 	service := usecase.NewUserService(repository, security.PlainTextHasher{}, auth.NewManager("component-secret", "arcee", 24*time.Hour), ids{}, clock{})
-	registered, err := service.Register(ctx, usecase.RegisterInput{Email: "component@example.com", Password: "password", Username: "component_user", FirstName: "Old"})
+	registered, err := service.Register(ctx, usecase.RegisterInput{
+		Email:     "component@example.com",
+		Password:  "password",
+		Username:  "component_user",
+		FirstName: "Old",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +69,11 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 
 	name, username := "New", "component_updated"
-	updated, err := service.Update(ctx, usecase.UpdateUserInput{ID: registered.User.ID(), FirstName: &name, Username: &username})
+	updated, err := service.Update(ctx, usecase.UpdateUserInput{
+		ID:        registered.User.ID(),
+		FirstName: &name,
+		Username:  &username,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
