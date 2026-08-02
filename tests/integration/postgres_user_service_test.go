@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/overmindv/arcee/internal/auth"
-	"github.com/overmindv/arcee/internal/config"
-	"github.com/overmindv/arcee/internal/domain"
-	postgresrepo "github.com/overmindv/arcee/internal/repository/postgres"
-	"github.com/overmindv/arcee/internal/security"
-	"github.com/overmindv/arcee/internal/usecase"
+	"github.com/overmindv/users/internal/auth"
+	"github.com/overmindv/users/internal/config"
+	"github.com/overmindv/users/internal/domain"
+	postgresrepo "github.com/overmindv/users/internal/repository/postgres"
+	"github.com/overmindv/users/internal/security"
+	"github.com/overmindv/users/internal/usecase"
 )
 
 // ids создаёт реальные UUID для PostgreSQL component-теста.
@@ -54,7 +54,7 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 
 	repository := postgresrepo.NewUserRepository(pool)
-	service := usecase.NewUserService(repository, security.PlainTextHasher{}, auth.NewManager("component-secret", "arcee", 24*time.Hour), ids{}, clock{})
+	service := usecase.NewUserService(repository, security.PlainTextHasher{}, auth.NewManager("component-secret", "users", 24*time.Hour), ids{}, clock{})
 	registered, err := service.Register(ctx, usecase.RegisterInput{
 		Email:     "component@example.com",
 		Password:  "password",

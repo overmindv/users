@@ -1,6 +1,6 @@
-# Arcee
+# Users
 
-Arcee - identity service платформы Overmindv. Он владеет пользователями, паролями, профилями, ролями и выпуском JWT.
+Users - identity service платформы Overmindv. Он владеет пользователями, паролями, профилями, ролями и выпуском JWT.
 
 ## Функционал
 
@@ -16,7 +16,7 @@ Arcee - identity service платформы Overmindv. Он владеет по�
 
 Обычный пользователь может читать доступный контент через frontend, но не управляет каталогом и другими пользователями. Администратор имеет все права обычного пользователя и может выполнять admin-only операции через Laserbeak. Суперпользователь создаётся первым bootstrap-аккаунтом, всегда считается администратором и нужен для назначения первых админов.
 
-Arcee является единственным источником истины по ролям пользователей. Laserbeak читает роли из JWT и прокидывает запросы управления пользователями обратно в Arcee.
+Users является единственным источником истины по ролям пользователей. Laserbeak читает роли из JWT и прокидывает запросы управления пользователями обратно в Users.
 
 ## Запуск
 
@@ -40,5 +40,5 @@ make build
 PostgreSQL component-тесты требуют отдельный DSN и запускаются командой:
 
 ```bash
-make ctest COMPONENT_TEST_DSN='postgres://postgres:postgres@localhost:5432/arcee?sslmode=disable'
+make ctest COMPONENT_TEST_DSN='postgres://postgres:postgres@localhost:5432/users?sslmode=disable'
 ```

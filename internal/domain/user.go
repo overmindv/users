@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// User представляет aggregate пользователя Arcee с профилем, ролями и soft delete состоянием.
+// User представляет aggregate пользователя Users с профилем, ролями и soft delete состоянием.
 type User struct {
 	id           string
 	email        Email

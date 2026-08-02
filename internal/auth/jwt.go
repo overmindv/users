@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 )
 
-// Manager выпускает и проверяет JWT для пользователей Arcee.
+// Manager выпускает и проверяет JWT для пользователей Users.
 type Manager struct {
 	secret   []byte
 	issuer   string

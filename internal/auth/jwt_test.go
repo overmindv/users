@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 )
 
 // TestManagerIssueAndParse проверяет выпуск JWT, чтение subject и истечение token.
 func TestManagerIssueAndParse(t *testing.T) {
-	manager := NewManager("secret", "arcee", 24*time.Hour)
+	manager := NewManager("secret", "users", 24*time.Hour)
 	manager.now = func() time.Time {
 		return time.Unix(1000, 0)
 	}

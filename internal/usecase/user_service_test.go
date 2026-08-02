@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/overmindv/arcee/internal/domain"
-	"github.com/overmindv/arcee/internal/security"
+	"github.com/overmindv/users/internal/domain"
+	"github.com/overmindv/users/internal/security"
 )
 
 // fakeRepository хранит пользователей в памяти для unit-тестов UserService.

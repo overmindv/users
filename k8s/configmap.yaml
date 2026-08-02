@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: arcee
+  name: users
 data:
   PORT: "8080"
-  JWT_ISSUER: "arcee"
+  JWT_ISSUER: "users"
   JWT_TTL: "24h"
   BOOTSTRAP_SUPERUSER_USERNAME: "superadmin"

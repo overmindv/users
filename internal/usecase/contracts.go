@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 )
 
 // UserRepository задаёт storage contract для пользователей.

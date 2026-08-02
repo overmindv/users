@@ -3,9 +3,9 @@ package graphql
 import (
 	"time"
 
-	"github.com/overmindv/arcee/internal/delivery/graphql/model"
-	"github.com/overmindv/arcee/internal/domain"
-	"github.com/overmindv/arcee/internal/usecase"
+	"github.com/overmindv/users/internal/delivery/graphql/model"
+	"github.com/overmindv/users/internal/domain"
+	"github.com/overmindv/users/internal/usecase"
 )
 
 // parseBirthDate переводит GraphQL date string в domain date.

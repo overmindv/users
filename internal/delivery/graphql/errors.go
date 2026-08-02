@@ -6,7 +6,7 @@ import (
 	"log/slog"
 
 	gqlgen "github.com/99designs/gqlgen/graphql"
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
