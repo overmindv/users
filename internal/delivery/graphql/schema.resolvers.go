@@ -7,11 +7,11 @@ package graphql
 import (
 	"context"
 
-	"github.com/overmindv/arcee/internal/auth"
-	"github.com/overmindv/arcee/internal/delivery/graphql/generated"
-	"github.com/overmindv/arcee/internal/delivery/graphql/model"
-	"github.com/overmindv/arcee/internal/domain"
-	"github.com/overmindv/arcee/internal/usecase"
+	"github.com/overmindv/users/internal/auth"
+	"github.com/overmindv/users/internal/delivery/graphql/generated"
+	"github.com/overmindv/users/internal/delivery/graphql/model"
+	"github.com/overmindv/users/internal/domain"
+	"github.com/overmindv/users/internal/usecase"
 )
 
 // Register обрабатывает публичную регистрацию пользователя.

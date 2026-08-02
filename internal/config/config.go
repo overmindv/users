@@ -16,7 +16,7 @@ type Config struct {
 	Bootstrap Bootstrap
 }
 
-// HTTP описывает настройки HTTP-server Arcee.
+// HTTP описывает настройки HTTP-server Users.
 type HTTP struct {
 	Address         string
 	ReadTimeout     time.Duration
@@ -48,7 +48,7 @@ type Bootstrap struct {
 	SuperuserLastName  string
 }
 
-// Load читает конфигурацию Arcee из environment и валидирует обязательные значения.
+// Load читает конфигурацию Users из environment и валидирует обязательные значения.
 func Load() (Config, error) {
 	port := strings.TrimPrefix(env("PORT", "8080"), ":")
 
@@ -60,14 +60,14 @@ func Load() (Config, error) {
 			ShutdownTimeout: envDuration("SHUTDOWN_TIMEOUT", 10*time.Second),
 		},
 		Database: Database{
-			DSN:             env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/arcee?sslmode=disable"),
+			DSN:             env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/users?sslmode=disable"),
 			MaxConnections:  int32(envInt("DB_MAX_CONNS", 20)),
 			MinConnections:  int32(envInt("DB_MIN_CONNS", 2)),
 			MaxConnLifetime: envDuration("DB_MAX_CONN_LIFETIME", 30*time.Minute),
 		},
 		JWT: JWT{
 			Secret:   env("JWT_SECRET", "local-development-secret-change-me"),
-			Issuer:   env("JWT_ISSUER", "arcee"),
+			Issuer:   env("JWT_ISSUER", "users"),
 			Lifetime: envDuration("JWT_TTL", 24*time.Hour),
 		},
 		Bootstrap: Bootstrap{

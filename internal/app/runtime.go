@@ -7,11 +7,11 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/overmindv/arcee/internal/auth"
-	graphqldelivery "github.com/overmindv/arcee/internal/delivery/graphql"
+	"github.com/overmindv/users/internal/auth"
+	graphqldelivery "github.com/overmindv/users/internal/delivery/graphql"
 )
 
-// Runtime управляет жизненным циклом HTTP-server Arcee.
+// Runtime управляет жизненным циклом HTTP-server Users.
 type Runtime struct{ container *Container }
 
 // NewRuntime создаёт runtime из готового dependency container.
@@ -35,7 +35,7 @@ func (r *Runtime) Run(ctx context.Context) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		r.container.Log.Info("Arcee GraphQL server started", "address", r.container.Config.HTTP.Address)
+		r.container.Log.Info("Users GraphQL server started", "address", r.container.Config.HTTP.Address)
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("serve HTTP: %w", err)
 		}

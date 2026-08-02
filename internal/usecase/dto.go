@@ -3,7 +3,7 @@ package usecase
 import (
 	"time"
 
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 )
 
 // RegisterInput описывает данные для регистрации обычного пользователя.

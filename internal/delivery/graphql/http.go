@@ -11,7 +11,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/google/uuid"
-	"github.com/overmindv/arcee/internal/delivery/graphql/generated"
+	"github.com/overmindv/users/internal/delivery/graphql/generated"
 )
 
 // HealthChecker задаёт contract проверки PostgreSQL для health endpoint.

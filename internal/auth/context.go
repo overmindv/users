@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 )
 
 // userIDKey задаёт приватный ключ context для user ID.

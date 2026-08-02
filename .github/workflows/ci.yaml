@@ -1,4 +1,4 @@
-name: Arcee CI
+name: Users CI
 
 on:
   pull_request:
@@ -37,13 +37,13 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_DB: arcee
+          POSTGRES_DB: users
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d arcee"
+          --health-cmd "pg_isready -U postgres -d users"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
@@ -53,7 +53,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Run PostgreSQL integration tests
-        run: make ctest COMPONENT_TEST_DSN='postgres://postgres:postgres@localhost:5432/arcee?sslmode=disable'
+        run: make ctest COMPONENT_TEST_DSN='postgres://postgres:postgres@localhost:5432/users?sslmode=disable'
 
   build:
     runs-on: ubuntu-latest

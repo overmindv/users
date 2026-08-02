@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/overmindv/arcee/internal/domain"
+	"github.com/overmindv/users/internal/domain"
 )
 
 const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, roles, is_superuser, created_at, updated_at, deleted_at`
@@ -188,7 +188,7 @@ func scanUser(row scanner) (*domain.User, error) {
 	}), nil
 }
 
-// mapError переводит ошибки PostgreSQL constraint в доменные ошибки Arcee.
+// mapError переводит ошибки PostgreSQL constraint в доменные ошибки Users.
 func mapError(err error) error {
 	if err == nil {
 		return nil

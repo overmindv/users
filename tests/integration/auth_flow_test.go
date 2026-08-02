@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/overmindv/arcee/internal/auth"
-	graphqldelivery "github.com/overmindv/arcee/internal/delivery/graphql"
-	"github.com/overmindv/arcee/internal/domain"
-	"github.com/overmindv/arcee/internal/security"
-	"github.com/overmindv/arcee/internal/usecase"
+	"github.com/overmindv/users/internal/auth"
+	graphqldelivery "github.com/overmindv/users/internal/delivery/graphql"
+	"github.com/overmindv/users/internal/domain"
+	"github.com/overmindv/users/internal/security"
+	"github.com/overmindv/users/internal/usecase"
 )
 
 // graphQLUserRepository имитирует repository для проверки GraphQL transport без PostgreSQL.
@@ -161,10 +161,10 @@ type graphQLResponse struct {
 	} `json:"errors"`
 }
 
-// TestGraphQLAuthFlow проверяет регистрацию, вход, update и admin promotion через GraphQL handler Arcee.
+// TestGraphQLAuthFlow проверяет регистрацию, вход, update и admin promotion через GraphQL handler Users.
 func TestGraphQLAuthFlow(t *testing.T) {
 	repository := newGraphQLUserRepository()
-	jwt := auth.NewManager("test-secret", "arcee", time.Hour)
+	jwt := auth.NewManager("test-secret", "users", time.Hour)
 	users := usecase.NewUserService(
 		repository,
 		security.PlainTextHasher{},

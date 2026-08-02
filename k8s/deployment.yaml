@@ -1,28 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: arcee
+  name: users
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: arcee
+      app: users
   template:
     metadata:
       labels:
-        app: arcee
+        app: users
     spec:
       containers:
-        - name: arcee
-          image: ghcr.io/overmindv/arcee:latest
+        - name: users
+          image: ghcr.io/overmindv/users:latest
           ports:
             - name: http
               containerPort: 8080
           envFrom:
             - configMapRef:
-                name: arcee
+                name: users
             - secretRef:
-                name: arcee
+                name: users
           readinessProbe:
             httpGet:
               path: /health

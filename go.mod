@@ -1,4 +1,4 @@
-module github.com/overmindv/arcee
+module github.com/overmindv/users
 
 go 1.25.0
 

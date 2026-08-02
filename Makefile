@@ -2,14 +2,14 @@ LOCAL_BIN := $(CURDIR)/bin
 GOOSE := $(LOCAL_BIN)/goose
 GQLGEN := $(LOCAL_BIN)/gqlgen
 GOLANGCI_LINT := $(LOCAL_BIN)/golangci-lint
-DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/arcee?sslmode=disable
+DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/users?sslmode=disable
 COMPONENT_TEST_DSN ?= $(DATABASE_URL)
 
 .PHONY: run build test integration ctest lint db-up db-down generate graphql
 
 # Запуск
 run: 
-	go run ./cmd/arcee
+	go run ./cmd/users
 
 # Сборка
 build: 

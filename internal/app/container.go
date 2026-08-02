@@ -7,15 +7,15 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/overmindv/arcee/internal/auth"
-	"github.com/overmindv/arcee/internal/config"
-	"github.com/overmindv/arcee/internal/pkg/singleton"
-	postgresrepo "github.com/overmindv/arcee/internal/repository/postgres"
-	"github.com/overmindv/arcee/internal/security"
-	"github.com/overmindv/arcee/internal/usecase"
+	"github.com/overmindv/users/internal/auth"
+	"github.com/overmindv/users/internal/config"
+	"github.com/overmindv/users/internal/pkg/singleton"
+	postgresrepo "github.com/overmindv/users/internal/repository/postgres"
+	"github.com/overmindv/users/internal/security"
+	"github.com/overmindv/users/internal/usecase"
 )
 
-// Container хранит собранные зависимости Arcee для runtime-слоя.
+// Container хранит собранные зависимости Users для runtime-слоя.
 type Container struct {
 	Config config.Config
 	Log    *slog.Logger

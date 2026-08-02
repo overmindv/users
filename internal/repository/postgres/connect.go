@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/overmindv/arcee/internal/config"
+	"github.com/overmindv/users/internal/config"
 )
 
 // Open создаёт pgx pool, применяет настройки connection pool и проверяет доступность PostgreSQL.
