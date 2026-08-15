@@ -507,7 +507,7 @@ func (ec *executionContext) field_Mutation_deleteUser_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLoginInput2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐLoginInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLoginInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐLoginInput)
 	if err != nil {
 		return nil, err
 	}
@@ -518,7 +518,7 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 func (ec *executionContext) field_Mutation_register_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRegisterInput2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐRegisterInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRegisterInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐRegisterInput)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +566,7 @@ func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, 
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateUserInput2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUpdateUserInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateUserInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUpdateUserInput)
 	if err != nil {
 		return nil, err
 	}
@@ -690,7 +690,7 @@ func (ec *executionContext) _AuthPayload_user(ctx context.Context, field graphql
 			return obj.User, nil
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -804,7 +804,7 @@ func (ec *executionContext) _Mutation_register(ctx context.Context, field graphq
 			return ec.resolvers.Mutation().Register(ctx, fc.Args["input"].(model.RegisterInput))
 		},
 		nil,
-		ec.marshalNAuthPayload2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload,
+		ec.marshalNAuthPayload2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload,
 		true,
 		true,
 	)
@@ -853,7 +853,7 @@ func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.C
 			return ec.resolvers.Mutation().Login(ctx, fc.Args["input"].(model.LoginInput))
 		},
 		nil,
-		ec.marshalNAuthPayload2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload,
+		ec.marshalNAuthPayload2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload,
 		true,
 		true,
 	)
@@ -902,7 +902,7 @@ func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field grap
 			return ec.resolvers.Mutation().UpdateUser(ctx, fc.Args["id"].(string), fc.Args["input"].(model.UpdateUserInput))
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -1010,7 +1010,7 @@ func (ec *executionContext) _Mutation_setUserAdmin(ctx context.Context, field gr
 			return ec.resolvers.Mutation().SetUserAdmin(ctx, fc.Args["id"].(string), fc.Args["admin"].(bool))
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -1077,7 +1077,7 @@ func (ec *executionContext) _Mutation_setUserAdminByUsername(ctx context.Context
 			return ec.resolvers.Mutation().SetUserAdminByUsername(ctx, fc.Args["username"].(string), fc.Args["admin"].(bool))
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -1143,7 +1143,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 			return ec.resolvers.Query().Me(ctx)
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -1199,7 +1199,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 			return ec.resolvers.Query().User(ctx, fc.Args["id"].(string))
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -1266,7 +1266,7 @@ func (ec *executionContext) _Query_userByUsername(ctx context.Context, field gra
 			return ec.resolvers.Query().UserByUsername(ctx, fc.Args["username"].(string))
 		},
 		nil,
-		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
 		true,
 		true,
 	)
@@ -1333,7 +1333,7 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 			return ec.resolvers.Query().Users(ctx, fc.Args["search"].(*string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
-		ec.marshalNUser2ᚕᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUserᚄ,
+		ec.marshalNUser2ᚕᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUserᚄ,
 		true,
 		true,
 	)
@@ -4172,11 +4172,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNAuthPayload2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload(ctx context.Context, sel ast.SelectionSet, v model.AuthPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNAuthPayload2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload(ctx context.Context, sel ast.SelectionSet, v model.AuthPayload) graphql.Marshaler {
 	return ec._AuthPayload(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAuthPayload2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload(ctx context.Context, sel ast.SelectionSet, v *model.AuthPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNAuthPayload2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐAuthPayload(ctx context.Context, sel ast.SelectionSet, v *model.AuthPayload) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4218,12 +4218,12 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐLoginInput(ctx context.Context, v any) (model.LoginInput, error) {
+func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐLoginInput(ctx context.Context, v any) (model.LoginInput, error) {
 	res, err := ec.unmarshalInputLoginInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRegisterInput2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐRegisterInput(ctx context.Context, v any) (model.RegisterInput, error) {
+func (ec *executionContext) unmarshalNRegisterInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐRegisterInput(ctx context.Context, v any) (model.RegisterInput, error) {
 	res, err := ec.unmarshalInputRegisterInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -4274,16 +4274,16 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUpdateUserInput(ctx context.Context, v any) (model.UpdateUserInput, error) {
+func (ec *executionContext) unmarshalNUpdateUserInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUpdateUserInput(ctx context.Context, v any) (model.UpdateUserInput, error) {
 	res, err := ec.unmarshalInputUpdateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4307,7 +4307,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋovermindvᚋarcee�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4327,7 +4327,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖgithubᚗcomᚋovermindvᚋarcee�
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋovermindvᚋarceeᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")

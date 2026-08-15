@@ -202,14 +202,11 @@ func (r *queryResolver) Users(ctx context.Context, search *string, limit *int, o
 	return result, nil
 }
 
-// Mutation возвращает реализацию GraphQL mutations для gqlgen.
+// Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query возвращает реализацию GraphQL queries для gqlgen.
+// Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// mutationResolver связывает generated mutation contract с root Resolver.
 type mutationResolver struct{ *Resolver }
-
-// queryResolver связывает generated query contract с root Resolver.
 type queryResolver struct{ *Resolver }

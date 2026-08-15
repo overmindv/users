@@ -32,7 +32,7 @@ func Handler(resolver *Resolver, database HealthChecker, log *slog.Logger) http.
 
 	mux.Handle("POST /query", graphqlServer)
 	mux.Handle("POST /graphql", graphqlServer)
-	mux.Handle("GET /playground", playground.Handler("Arcee GraphQL", "/query"))
+	mux.Handle("GET /playground", playground.Handler("Users GraphQL", "/query"))
 
 	health := func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
