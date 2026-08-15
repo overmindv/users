@@ -39,7 +39,7 @@ func errorPresenter(log *slog.Logger) gqlgen.ErrorPresenterFunc {
 	}
 }
 
-// domainError сопоставляет доменные ошибки Arcee с GraphQL error code.
+// domainError сопоставляет доменные ошибки Users с GraphQL error code.
 // На вход получает исходную ошибку, на выход возвращает машинный code и пользовательское сообщение.
 func domainError(err error) (string, string) {
 	const genericMessage = "Не удалось выполнить действие."
