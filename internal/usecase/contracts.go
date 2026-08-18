@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"github.com/overmindv/users/internal/domain"
@@ -15,7 +14,9 @@ type UserRepository interface {
 	GetByEmail(context.Context, domain.Email) (*domain.User, error)
 	GetByUsername(context.Context, domain.Username) (*domain.User, error)
 	List(context.Context, string, int, int) ([]*domain.User, error)
+	ListPublic(context.Context, string, int, int) ([]*domain.User, error)
 	Update(context.Context, *domain.User) error
+	SetAvatar(context.Context, *domain.User) error
 	UpdateRoles(context.Context, *domain.User) error
 	SoftDelete(context.Context, *domain.User) error
 }
@@ -38,8 +39,7 @@ type IDGenerator interface{ New() string }
 // Clock возвращает текущее время для доменной логики и тестов.
 type Clock interface{ Now() time.Time }
 
-// UserMediaStorage задаёт будущий contract хранения пользовательских медиа без привязки к файловой системе или cloud provider.
+// UserMediaStorage проверяет готовый пользовательский аватар через Media API.
 type UserMediaStorage interface {
-	Upload(ctx context.Context, userID, contentType string, content io.Reader) (location string, err error)
-	Delete(ctx context.Context, location string) error
+	ValidateAvatar(ctx context.Context, userID, fileID string) error
 }

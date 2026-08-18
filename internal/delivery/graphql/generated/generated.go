@@ -56,31 +56,45 @@ type ComplexityRoot struct {
 		DeleteUser             func(childComplexity int, id string) int
 		Login                  func(childComplexity int, input model.LoginInput) int
 		Register               func(childComplexity int, input model.RegisterInput) int
+		SetMyAvatar            func(childComplexity int, fileID *string) int
 		SetUserAdmin           func(childComplexity int, id string, admin bool) int
 		SetUserAdminByUsername func(childComplexity int, username string, admin bool) int
 		UpdateUser             func(childComplexity int, id string, input model.UpdateUserInput) int
 	}
 
+	PublicUser struct {
+		AvatarFileID func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
+		FirstName    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		IsAdmin      func(childComplexity int) int
+		LastName     func(childComplexity int) int
+		Username     func(childComplexity int) int
+	}
+
 	Query struct {
 		Me             func(childComplexity int) int
+		PublicUser     func(childComplexity int, id string) int
+		PublicUsers    func(childComplexity int, search string, limit *int, offset *int) int
 		User           func(childComplexity int, id string) int
 		UserByUsername func(childComplexity int, username string) int
 		Users          func(childComplexity int, search *string, limit *int, offset *int) int
 	}
 
 	User struct {
-		BirthDate   func(childComplexity int) int
-		CreatedAt   func(childComplexity int) int
-		Email       func(childComplexity int) int
-		FirstName   func(childComplexity int) int
-		ID          func(childComplexity int) int
-		IsAdmin     func(childComplexity int) int
-		IsSuperuser func(childComplexity int) int
-		LastName    func(childComplexity int) int
-		Phone       func(childComplexity int) int
-		Roles       func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
-		Username    func(childComplexity int) int
+		AvatarFileID func(childComplexity int) int
+		BirthDate    func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
+		Email        func(childComplexity int) int
+		FirstName    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		IsAdmin      func(childComplexity int) int
+		IsSuperuser  func(childComplexity int) int
+		LastName     func(childComplexity int) int
+		Phone        func(childComplexity int) int
+		Roles        func(childComplexity int) int
+		UpdatedAt    func(childComplexity int) int
+		Username     func(childComplexity int) int
 	}
 }
 
@@ -88,6 +102,7 @@ type MutationResolver interface {
 	Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error)
 	Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error)
 	UpdateUser(ctx context.Context, id string, input model.UpdateUserInput) (*model.User, error)
+	SetMyAvatar(ctx context.Context, fileID *string) (*model.User, error)
 	DeleteUser(ctx context.Context, id string) (bool, error)
 	SetUserAdmin(ctx context.Context, id string, admin bool) (*model.User, error)
 	SetUserAdminByUsername(ctx context.Context, username string, admin bool) (*model.User, error)
@@ -97,6 +112,8 @@ type QueryResolver interface {
 	User(ctx context.Context, id string) (*model.User, error)
 	UserByUsername(ctx context.Context, username string) (*model.User, error)
 	Users(ctx context.Context, search *string, limit *int, offset *int) ([]*model.User, error)
+	PublicUser(ctx context.Context, id string) (*model.PublicUser, error)
+	PublicUsers(ctx context.Context, search string, limit *int, offset *int) ([]*model.PublicUser, error)
 }
 
 type executableSchema struct {
@@ -170,6 +187,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.Register(childComplexity, args["input"].(model.RegisterInput)), true
+	case "Mutation.setMyAvatar":
+		if e.complexity.Mutation.SetMyAvatar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setMyAvatar_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetMyAvatar(childComplexity, args["fileId"].(*string)), true
 	case "Mutation.setUserAdmin":
 		if e.complexity.Mutation.SetUserAdmin == nil {
 			break
@@ -204,12 +232,77 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UpdateUser(childComplexity, args["id"].(string), args["input"].(model.UpdateUserInput)), true
 
+	case "PublicUser.avatarFileId":
+		if e.complexity.PublicUser.AvatarFileID == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.AvatarFileID(childComplexity), true
+	case "PublicUser.createdAt":
+		if e.complexity.PublicUser.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.CreatedAt(childComplexity), true
+	case "PublicUser.firstName":
+		if e.complexity.PublicUser.FirstName == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.FirstName(childComplexity), true
+	case "PublicUser.id":
+		if e.complexity.PublicUser.ID == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.ID(childComplexity), true
+	case "PublicUser.isAdmin":
+		if e.complexity.PublicUser.IsAdmin == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.IsAdmin(childComplexity), true
+	case "PublicUser.lastName":
+		if e.complexity.PublicUser.LastName == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.LastName(childComplexity), true
+	case "PublicUser.username":
+		if e.complexity.PublicUser.Username == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.Username(childComplexity), true
+
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+	case "Query.publicUser":
+		if e.complexity.Query.PublicUser == nil {
+			break
+		}
+
+		args, err := ec.field_Query_publicUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PublicUser(childComplexity, args["id"].(string)), true
+	case "Query.publicUsers":
+		if e.complexity.Query.PublicUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_publicUsers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PublicUsers(childComplexity, args["search"].(string), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -244,6 +337,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.Users(childComplexity, args["search"].(*string), args["limit"].(*int), args["offset"].(*int)), true
 
+	case "User.avatarFileId":
+		if e.complexity.User.AvatarFileID == nil {
+			break
+		}
+
+		return e.complexity.User.AvatarFileID(childComplexity), true
 	case "User.birthDate":
 		if e.complexity.User.BirthDate == nil {
 			break
@@ -433,11 +532,22 @@ var sources = []*ast.Source{
   lastName: String!
   birthDate: String
   phone: String
+  avatarFileId: ID
   roles: [String!]!
   isAdmin: Boolean!
   isSuperuser: Boolean!
   createdAt: String!
   updatedAt: String!
+}
+
+type PublicUser {
+  id: ID!
+  username: String!
+  firstName: String!
+  lastName: String!
+  avatarFileId: ID
+  isAdmin: Boolean!
+  createdAt: String!
 }
 
 type AuthPayload {
@@ -475,12 +585,15 @@ type Query {
   user(id: ID!): User!
   userByUsername(username: String!): User!
   users(search: String = "", limit: Int = 20, offset: Int = 0): [User!]!
+  publicUser(id: ID!): PublicUser!
+  publicUsers(search: String!, limit: Int = 20, offset: Int = 0): [PublicUser!]!
 }
 
 type Mutation {
   register(input: RegisterInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
   updateUser(id: ID!, input: UpdateUserInput!): User!
+  setMyAvatar(fileId: ID): User!
   deleteUser(id: ID!): Boolean!
   setUserAdmin(id: ID!, admin: Boolean!): User!
   setUserAdminByUsername(username: String!, admin: Boolean!): User!
@@ -523,6 +636,17 @@ func (ec *executionContext) field_Mutation_register_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setMyAvatar_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "fileId", ec.unmarshalOID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["fileId"] = arg0
 	return args, nil
 }
 
@@ -582,6 +706,38 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_publicUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_publicUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "search", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["search"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -718,6 +874,8 @@ func (ec *executionContext) fieldContext_AuthPayload_user(_ context.Context, fie
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -930,6 +1088,8 @@ func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -952,6 +1112,75 @@ func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setMyAvatar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_setMyAvatar,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SetMyAvatar(ctx, fc.Args["fileId"].(*string))
+		},
+		nil,
+		ec.marshalNUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_setMyAvatar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "username":
+				return ec.fieldContext_User_username(ctx, field)
+			case "firstName":
+				return ec.fieldContext_User_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_User_lastName(ctx, field)
+			case "birthDate":
+				return ec.fieldContext_User_birthDate(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
+			case "roles":
+				return ec.fieldContext_User_roles(ctx, field)
+			case "isAdmin":
+				return ec.fieldContext_User_isAdmin(ctx, field)
+			case "isSuperuser":
+				return ec.fieldContext_User_isSuperuser(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setMyAvatar_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1038,6 +1267,8 @@ func (ec *executionContext) fieldContext_Mutation_setUserAdmin(ctx context.Conte
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -1105,6 +1336,8 @@ func (ec *executionContext) fieldContext_Mutation_setUserAdminByUsername(ctx con
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -1129,6 +1362,209 @@ func (ec *executionContext) fieldContext_Mutation_setUserAdminByUsername(ctx con
 	if fc.Args, err = ec.field_Mutation_setUserAdminByUsername_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_id(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_username(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_username,
+		func(ctx context.Context) (any, error) {
+			return obj.Username, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_username(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_firstName(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_firstName,
+		func(ctx context.Context) (any, error) {
+			return obj.FirstName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_firstName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_lastName(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_lastName,
+		func(ctx context.Context) (any, error) {
+			return obj.LastName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_lastName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_avatarFileId(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_avatarFileId,
+		func(ctx context.Context) (any, error) {
+			return obj.AvatarFileID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_avatarFileId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_isAdmin(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_isAdmin,
+		func(ctx context.Context) (any, error) {
+			return obj.IsAdmin, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_isAdmin(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -1171,6 +1607,8 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -1227,6 +1665,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -1294,6 +1734,8 @@ func (ec *executionContext) fieldContext_Query_userByUsername(ctx context.Contex
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -1361,6 +1803,8 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 				return ec.fieldContext_User_birthDate(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_User_avatarFileId(ctx, field)
 			case "roles":
 				return ec.fieldContext_User_roles(ctx, field)
 			case "isAdmin":
@@ -1383,6 +1827,120 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_users_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_publicUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_publicUser,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PublicUser(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNPublicUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐPublicUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_publicUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PublicUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_PublicUser_username(ctx, field)
+			case "firstName":
+				return ec.fieldContext_PublicUser_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_PublicUser_lastName(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_PublicUser_avatarFileId(ctx, field)
+			case "isAdmin":
+				return ec.fieldContext_PublicUser_isAdmin(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PublicUser_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PublicUser", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_publicUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_publicUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_publicUsers,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PublicUsers(ctx, fc.Args["search"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNPublicUser2ᚕᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐPublicUserᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_publicUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PublicUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_PublicUser_username(ctx, field)
+			case "firstName":
+				return ec.fieldContext_PublicUser_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_PublicUser_lastName(ctx, field)
+			case "avatarFileId":
+				return ec.fieldContext_PublicUser_avatarFileId(ctx, field)
+			case "isAdmin":
+				return ec.fieldContext_PublicUser_isAdmin(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PublicUser_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PublicUser", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_publicUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1695,6 +2253,35 @@ func (ec *executionContext) fieldContext_User_phone(_ context.Context, field gra
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_avatarFileId(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_avatarFileId,
+		func(ctx context.Context) (any, error) {
+			return obj.AvatarFileID, nil
+		},
+		nil,
+		ec.marshalOID2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_avatarFileId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3567,6 +4154,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "setMyAvatar":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setMyAvatar(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deleteUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteUser(ctx, field)
@@ -3585,6 +4179,72 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_setUserAdminByUsername(ctx, field)
 			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var publicUserImplementors = []string{"PublicUser"}
+
+func (ec *executionContext) _PublicUser(ctx context.Context, sel ast.SelectionSet, obj *model.PublicUser) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, publicUserImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PublicUser")
+		case "id":
+			out.Values[i] = ec._PublicUser_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "username":
+			out.Values[i] = ec._PublicUser_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "firstName":
+			out.Values[i] = ec._PublicUser_firstName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "lastName":
+			out.Values[i] = ec._PublicUser_lastName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "avatarFileId":
+			out.Values[i] = ec._PublicUser_avatarFileId(ctx, field, obj)
+		case "isAdmin":
+			out.Values[i] = ec._PublicUser_isAdmin(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._PublicUser_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -3718,6 +4378,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "publicUser":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_publicUser(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "publicUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_publicUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -3789,6 +4493,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_birthDate(ctx, field, obj)
 		case "phone":
 			out.Values[i] = ec._User_phone(ctx, field, obj)
+		case "avatarFileId":
+			out.Values[i] = ec._User_avatarFileId(ctx, field, obj)
 		case "roles":
 			out.Values[i] = ec._User_roles(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4223,6 +4929,64 @@ func (ec *executionContext) unmarshalNLoginInput2githubᚗcomᚋovermindvᚋuser
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNPublicUser2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐPublicUser(ctx context.Context, sel ast.SelectionSet, v model.PublicUser) graphql.Marshaler {
+	return ec._PublicUser(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPublicUser2ᚕᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐPublicUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PublicUser) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPublicUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐPublicUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPublicUser2ᚖgithubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐPublicUser(ctx context.Context, sel ast.SelectionSet, v *model.PublicUser) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PublicUser(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNRegisterInput2githubᚗcomᚋovermindvᚋusersᚋinternalᚋdeliveryᚋgraphqlᚋmodelᚐRegisterInput(ctx context.Context, v any) (model.RegisterInput, error) {
 	res, err := ec.unmarshalInputRegisterInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4617,6 +5381,24 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
 	return res
 }
 

@@ -15,6 +15,7 @@ type User struct {
 	lastName     string
 	birthDate    *time.Time
 	phone        Phone
+	avatarFileID *string
 	roles        []string
 	isSuperuser  bool
 	createdAt    time.Time
@@ -35,6 +36,7 @@ type NewUserParams struct {
 	LastName     string
 	BirthDate    *time.Time
 	Phone        Phone
+	AvatarFileID *string
 	Roles        []string
 	IsSuperuser  bool
 	Now          time.Time
@@ -101,6 +103,7 @@ func NewUser(params NewUserParams) (*User, error) {
 		lastName:     lastName,
 		birthDate:    cloneTime(params.BirthDate),
 		phone:        params.Phone,
+		avatarFileID: cloneString(params.AvatarFileID),
 		roles:        normalizeRoles(params.Roles, params.IsSuperuser),
 		isSuperuser:  params.IsSuperuser,
 		createdAt:    now,
@@ -120,12 +123,19 @@ func RestoreUser(params RestoreUserParams) *User {
 		lastName:     params.LastName,
 		birthDate:    cloneTime(params.BirthDate),
 		phone:        params.Phone,
+		avatarFileID: cloneString(params.AvatarFileID),
 		roles:        normalizeRoles(params.Roles, params.IsSuperuser),
 		isSuperuser:  params.IsSuperuser,
 		createdAt:    params.CreatedAt,
 		updatedAt:    params.UpdatedAt,
 		deletedAt:    cloneTime(params.DeletedAt),
 	}
+}
+
+// SetAvatar устанавливает или очищает внешний UUID аватара и обновляет aggregate timestamp.
+func (u *User) SetAvatar(fileID *string, now time.Time) {
+	u.avatarFileID = cloneString(fileID)
+	u.updatedAt = now.UTC()
 }
 
 // UpdateProfile применяет частичное обновление профиля пользователя.
@@ -231,6 +241,15 @@ func cloneTime(value *time.Time) *time.Time {
 	return &cloned
 }
 
+func cloneString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+
+	return &cloned
+}
+
 // normalizeRoles приводит роли к каноническому набору.
 // На вход получает исходный список и признак суперпользователя, на выход возвращает роли без дублей и пустых значений.
 func normalizeRoles(values []string, isSuperuser bool) []string {
@@ -297,6 +316,9 @@ func (u *User) BirthDate() *time.Time { return cloneTime(u.birthDate) }
 
 // Phone возвращает телефон пользователя.
 func (u *User) Phone() Phone { return u.phone }
+
+// AvatarFileID возвращает копию внешнего UUID аватара из Media.
+func (u *User) AvatarFileID() *string { return cloneString(u.avatarFileID) }
 
 // Roles возвращает копию ролей пользователя.
 // На выходе всегда отдаётся slice, который можно безопасно передать в PostgreSQL array encoder.

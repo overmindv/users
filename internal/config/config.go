@@ -14,6 +14,7 @@ type Config struct {
 	Database  Database
 	JWT       JWT
 	Bootstrap Bootstrap
+	Media     Media
 }
 
 // HTTP описывает настройки HTTP-server Users.
@@ -37,6 +38,15 @@ type JWT struct {
 	Secret   string
 	Issuer   string
 	Lifetime time.Duration
+}
+
+// Media описывает внутреннее подключение Users к Media.
+type Media struct {
+	URL        string
+	Token      string
+	Timeout    time.Duration
+	WorkerPoll time.Duration
+	WorkerHTTP string
 }
 
 // Bootstrap описывает данные первого суперпользователя.
@@ -70,6 +80,13 @@ func Load() (Config, error) {
 			Issuer:   env("JWT_ISSUER", "users"),
 			Lifetime: envDuration("JWT_TTL", 24*time.Hour),
 		},
+		Media: Media{
+			URL:        env("MEDIA_URL", "http://localhost:8085"),
+			Token:      env("MEDIA_USERS_TOKEN", ""),
+			Timeout:    envDuration("MEDIA_TIMEOUT", 5*time.Second),
+			WorkerPoll: envDuration("USERS_WORKER_POLL_INTERVAL", time.Second),
+			WorkerHTTP: env("USERS_WORKER_HTTP_ADDR", ":8081"),
+		},
 		Bootstrap: Bootstrap{
 			SuperuserEmail:     env("BOOTSTRAP_SUPERUSER_EMAIL", ""),
 			SuperuserPassword:  env("BOOTSTRAP_SUPERUSER_PASSWORD", ""),
@@ -93,6 +110,9 @@ func Load() (Config, error) {
 
 	if cfg.JWT.Lifetime <= 0 {
 		return Config{}, fmt.Errorf("JWT_TTL must be positive")
+	}
+	if cfg.Media.URL == "" || cfg.Media.Token == "" {
+		return Config{}, fmt.Errorf("MEDIA_URL и MEDIA_USERS_TOKEN обязательны")
 	}
 
 	return cfg, nil

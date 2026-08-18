@@ -17,6 +17,15 @@ type UserService struct {
 	tokens     TokenManager
 	ids        IDGenerator
 	clock      Clock
+	media      UserMediaStorage
+}
+
+// NewUserServiceWithMedia собирает Users usecase с проверкой файлов через Media.
+func NewUserServiceWithMedia(repository UserRepository, passwords PasswordHasher, tokens TokenManager, ids IDGenerator, clock Clock, media UserMediaStorage) *UserService {
+	service := NewUserService(repository, passwords, tokens, ids, clock)
+	service.media = media
+
+	return service
 }
 
 // NewUserService собирает user usecase из repository, password service, token manager, ID generator и clock.
@@ -204,6 +213,51 @@ func (s *UserService) List(ctx context.Context, input ListUsersInput) ([]*domain
 	}
 
 	return users, nil
+}
+
+// ListPublic возвращает безопасный поиск по username, имени и фамилии.
+func (s *UserService) ListPublic(ctx context.Context, input ListUsersInput) ([]*domain.User, error) {
+	input.Search = strings.TrimSpace(input.Search)
+	if len([]rune(input.Search)) < 2 || len([]rune(input.Search)) > 64 {
+		return nil, domain.ErrInvalidUsername
+	}
+	if input.Limit <= 0 {
+		input.Limit = 20
+	}
+	if input.Limit > 50 {
+		input.Limit = 50
+	}
+	if input.Offset < 0 {
+		input.Offset = 0
+	}
+	users, err := s.repository.ListPublic(ctx, input.Search, input.Limit, input.Offset)
+	if err != nil {
+		return nil, fmt.Errorf("list public users: %w", err)
+	}
+
+	return users, nil
+}
+
+// SetAvatar проверяет готовый Media-файл и сохраняет avatar_file_id с outbox event.
+func (s *UserService) SetAvatar(ctx context.Context, input SetAvatarInput) (*domain.User, error) {
+	user, err := s.repository.GetByID(ctx, input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("get user for avatar: %w", err)
+	}
+	if input.FileID != nil {
+		if s.media == nil {
+			return nil, fmt.Errorf("media storage не настроен")
+		}
+		if err := s.media.ValidateAvatar(ctx, input.UserID, *input.FileID); err != nil {
+			return nil, fmt.Errorf("validate avatar: %w", err)
+		}
+	}
+	user.SetAvatar(input.FileID, s.clock.Now())
+	if err := s.repository.SetAvatar(ctx, user); err != nil {
+		return nil, fmt.Errorf("set user avatar: %w", err)
+	}
+
+	return user, nil
 }
 
 // Update применяет частичное обновление профиля пользователя.

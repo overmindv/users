@@ -35,18 +35,32 @@ func toUser(user *domain.User) *model.User {
 	}
 
 	return &model.User{
-		ID:          user.ID(),
-		Email:       user.Email().String(),
-		Username:    user.Username().String(),
-		FirstName:   user.FirstName(),
-		LastName:    user.LastName(),
-		BirthDate:   birthDate,
-		Phone:       phone,
-		Roles:       user.Roles(),
-		IsAdmin:     user.IsAdmin(),
-		IsSuperuser: user.IsSuperuser(),
-		CreatedAt:   user.CreatedAt().Format(time.RFC3339),
-		UpdatedAt:   user.UpdatedAt().Format(time.RFC3339),
+		ID:           user.ID(),
+		Email:        user.Email().String(),
+		Username:     user.Username().String(),
+		FirstName:    user.FirstName(),
+		LastName:     user.LastName(),
+		BirthDate:    birthDate,
+		Phone:        phone,
+		AvatarFileID: user.AvatarFileID(),
+		Roles:        user.Roles(),
+		IsAdmin:      user.IsAdmin(),
+		IsSuperuser:  user.IsSuperuser(),
+		CreatedAt:    user.CreatedAt().Format(time.RFC3339),
+		UpdatedAt:    user.UpdatedAt().Format(time.RFC3339),
+	}
+}
+
+// toPublicUser исключает email, телефон, birth date и служебные роли из публичного DTO.
+func toPublicUser(user *domain.User) *model.PublicUser {
+	return &model.PublicUser{
+		ID:           user.ID(),
+		Username:     user.Username().String(),
+		FirstName:    user.FirstName(),
+		LastName:     user.LastName(),
+		AvatarFileID: user.AvatarFileID(),
+		IsAdmin:      user.IsAdmin(),
+		CreatedAt:    user.CreatedAt().Format(time.RFC3339),
 	}
 }
 
