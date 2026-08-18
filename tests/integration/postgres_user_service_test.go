@@ -49,7 +49,7 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 	defer pool.Close()
 
-	if _, err := pool.Exec(ctx, "TRUNCATE users"); err != nil {
+	if _, err := pool.Exec(ctx, "TRUNCATE user_outbox_events, users"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -79,6 +79,22 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 	if updated.FirstName() != name || updated.Username().String() != username {
 		t.Fatalf("profile not updated: %q %q", updated.FirstName(), updated.Username())
+	}
+
+	avatarFileID := uuid.NewString()
+	updated.SetAvatar(&avatarFileID, clock{}.Now())
+	if err := repository.SetAvatar(ctx, updated); err != nil {
+		t.Fatalf("set avatar with outbox: %v", err)
+	}
+	var storedAvatarFileID, eventStatus string
+	if err := pool.QueryRow(ctx, `
+		SELECT u.avatar_file_id::text,e.status
+		  FROM users u JOIN user_outbox_events e ON e.aggregate_id=u.id
+		 WHERE u.id=$1 AND e.event_type='user.avatar_changed'`, updated.ID()).Scan(&storedAvatarFileID, &eventStatus); err != nil {
+		t.Fatalf("read avatar outbox: %v", err)
+	}
+	if storedAvatarFileID != avatarFileID || eventStatus != "pending" {
+		t.Fatalf("avatar transaction mismatch: file=%s status=%s", storedAvatarFileID, eventStatus)
 	}
 
 	if err := service.Delete(ctx, registered.User.ID()); err != nil {

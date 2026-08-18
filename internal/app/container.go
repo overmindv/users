@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/overmindv/users/internal/auth"
 	"github.com/overmindv/users/internal/config"
+	usersmedia "github.com/overmindv/users/internal/media"
 	"github.com/overmindv/users/internal/pkg/singleton"
 	postgresrepo "github.com/overmindv/users/internal/repository/postgres"
 	"github.com/overmindv/users/internal/security"
@@ -48,7 +49,7 @@ func NewContainer(ctx context.Context, cfg config.Config, log *slog.Logger) (*Co
 
 	repository := postgresrepo.NewUserRepository(db)
 
-	users := usecase.NewUserService(repository, security.PlainTextHasher{}, jwtManager, uuidGenerator{}, systemClock{})
+	users := usecase.NewUserServiceWithMedia(repository, security.PlainTextHasher{}, jwtManager, uuidGenerator{}, systemClock{}, usersmedia.New(cfg.Media))
 	// Bootstrap выполняется при сборке container, чтобы первый админ был доступен до старта HTTP-server.
 	if err := users.EnsureBootstrapSuperuser(ctx, usecase.BootstrapSuperuserInput{
 		Email:     cfg.Bootstrap.SuperuserEmail,

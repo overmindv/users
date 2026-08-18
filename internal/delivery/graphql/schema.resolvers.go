@@ -78,6 +78,23 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 	return toUser(user), nil
 }
 
+// SetMyAvatar устанавливает или очищает аватар текущего пользователя.
+func (r *mutationResolver) SetMyAvatar(ctx context.Context, fileID *string) (*model.User, error) {
+	actorID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	user, err := r.Users.SetAvatar(ctx, usecase.SetAvatarInput{
+		UserID: actorID,
+		FileID: fileID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return toUser(user), nil
+}
+
 // DeleteUser выполняет soft delete только текущего авторизованного пользователя.
 func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, error) {
 	actorID, err := auth.UserIDFromContext(ctx)
@@ -197,6 +214,40 @@ func (r *queryResolver) Users(ctx context.Context, search *string, limit *int, o
 	result := make([]*model.User, 0, len(users))
 	for _, user := range users {
 		result = append(result, toUser(user))
+	}
+
+	return result, nil
+}
+
+// PublicUser возвращает безопасный профиль авторизованному пользователю.
+func (r *queryResolver) PublicUser(ctx context.Context, id string) (*model.PublicUser, error) {
+	if _, err := auth.UserIDFromContext(ctx); err != nil {
+		return nil, err
+	}
+	user, err := r.Resolver.Users.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return toPublicUser(user), nil
+}
+
+// PublicUsers ищет пользователей без раскрытия приватных полей.
+func (r *queryResolver) PublicUsers(ctx context.Context, search string, limit *int, offset *int) ([]*model.PublicUser, error) {
+	if _, err := auth.UserIDFromContext(ctx); err != nil {
+		return nil, err
+	}
+	users, err := r.Resolver.Users.ListPublic(ctx, usecase.ListUsersInput{
+		Search: search,
+		Limit:  intValue(limit, 20),
+		Offset: intValue(offset, 0),
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*model.PublicUser, 0, len(users))
+	for _, user := range users {
+		result = append(result, toPublicUser(user))
 	}
 
 	return result, nil

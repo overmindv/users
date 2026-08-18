@@ -32,7 +32,12 @@ func errorPresenter(log *slog.Logger) gqlgen.ErrorPresenterFunc {
 		presented.Extensions["code"] = code
 
 		if log != nil {
-			log.WarnContext(ctx, "graphql error", "request_id", requestID(ctx), "code", code, "error", err)
+			logError := err
+			var gqlErr *gqlerror.Error
+			if errors.As(err, &gqlErr) && gqlErr.Err != nil {
+				logError = gqlErr.Err
+			}
+			log.WarnContext(ctx, "graphql error", "request_id", requestID(ctx), "code", code, "error", logError)
 		}
 
 		return presented

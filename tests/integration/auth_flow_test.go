@@ -102,6 +102,16 @@ func (r *graphQLUserRepository) List(_ context.Context, search string, limit, of
 	return result[offset:end], nil
 }
 
+// ListPublic использует тот же in-memory поиск в integration-тесте.
+func (r *graphQLUserRepository) ListPublic(ctx context.Context, search string, limit, offset int) ([]*domain.User, error) {
+	return r.List(ctx, search, limit, offset)
+}
+
+// SetAvatar сохраняет avatar state через общий update helper.
+func (r *graphQLUserRepository) SetAvatar(ctx context.Context, user *domain.User) error {
+	return r.Update(ctx, user)
+}
+
 // Update сохраняет изменения пользователя в in-memory repository.
 func (r *graphQLUserRepository) Update(_ context.Context, user *domain.User) error {
 	if _, ok := r.users[user.ID()]; !ok {

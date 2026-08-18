@@ -57,6 +57,12 @@ type ListUsersInput struct {
 	Offset int
 }
 
+// SetAvatarInput задаёт установку или очистку аватара текущего пользователя.
+type SetAvatarInput struct {
+	UserID string
+	FileID *string
+}
+
 // SetAdminInput описывает изменение роли admin по user ID.
 type SetAdminInput struct {
 	ActorID string

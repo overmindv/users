@@ -101,6 +101,14 @@ func (r *fakeRepository) List(_ context.Context, search string, _, _ int) ([]*do
 	return result, nil
 }
 
+func (r *fakeRepository) ListPublic(ctx context.Context, search string, limit, offset int) ([]*domain.User, error) {
+	return r.List(ctx, search, limit, offset)
+}
+
+func (r *fakeRepository) SetAvatar(_ context.Context, user *domain.User) error {
+	return r.Update(context.Background(), user)
+}
+
 // Update сохраняет изменения профиля в test repository.
 func (r *fakeRepository) Update(_ context.Context, user *domain.User) error {
 	if r.updateErr != nil {
@@ -187,6 +195,20 @@ func (t fakeTokens) Issue(id string, _ []string) (string, time.Time, error) {
 // Parse возвращает token как user ID для test contract.
 func (fakeTokens) Parse(token string) (string, error) { return token, nil }
 
+type fakeMedia struct {
+	userID string
+	fileID string
+	err    error
+}
+
+// ValidateAvatar фиксирует проверяемые IDs и возвращает заданную ошибку.
+func (m *fakeMedia) ValidateAvatar(_ context.Context, userID, fileID string) error {
+	m.userID = userID
+	m.fileID = fileID
+
+	return m.err
+}
+
 // brokenHasher имитирует ошибки password hashing и compare.
 type brokenHasher struct{}
 
@@ -199,6 +221,35 @@ func (brokenHasher) Compare(string, string) error { return errors.New("compare f
 // newService собирает UserService с test dependencies.
 func newService(repository *fakeRepository) *UserService {
 	return NewUserService(repository, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC)})
+}
+
+// TestSetAvatarValidatesAndClears проверяет валидацию Media и очистку без внешнего вызова.
+func TestSetAvatarValidatesAndClears(t *testing.T) {
+	t.Parallel()
+
+	repository := newFakeRepository()
+	media := &fakeMedia{}
+	service := NewUserServiceWithMedia(repository, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Date(2026, 8, 17, 0, 0, 0, 0, time.UTC)}, media)
+	registered, err := service.Register(context.Background(), RegisterInput{Email: "avatar@example.com", Password: "password", Username: "avatar_user"})
+	if err != nil {
+		t.Fatalf("зарегистрировать пользователя: %v", err)
+	}
+	fileID := "11111111-1111-1111-1111-111111111111"
+	updated, err := service.SetAvatar(context.Background(), SetAvatarInput{UserID: registered.User.ID(), FileID: &fileID})
+	if err != nil {
+		t.Fatalf("установить аватар: %v", err)
+	}
+	if updated.AvatarFileID() == nil || *updated.AvatarFileID() != fileID || media.fileID != fileID {
+		t.Fatalf("аватар или media validation не сохранены: user=%+v media=%+v", updated, media)
+	}
+	media.fileID = ""
+	updated, err = service.SetAvatar(context.Background(), SetAvatarInput{UserID: registered.User.ID()})
+	if err != nil {
+		t.Fatalf("очистить аватар: %v", err)
+	}
+	if updated.AvatarFileID() != nil || media.fileID != "" {
+		t.Fatal("очистка аватара не должна обращаться в Media")
+	}
 }
 
 // TestRegisterLoginUpdateDelete проверяет основной пользовательский lifecycle без БД.
