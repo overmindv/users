@@ -3,34 +3,15 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
-// Config объединяет настройки HTTP, PostgreSQL, JWT и bootstrap-пользователя.
+// Config объединяет бизнес-настройки Users: JWT, Media и bootstrap-пользователя.
+// Инфраструктурный конфиг (HTTP, PostgreSQL, логирование, метрики) владеет parker.
 type Config struct {
-	HTTP      HTTP
-	Database  Database
 	JWT       JWT
-	Bootstrap Bootstrap
 	Media     Media
-}
-
-// HTTP описывает настройки HTTP-server Users.
-type HTTP struct {
-	Address         string
-	ReadTimeout     time.Duration
-	WriteTimeout    time.Duration
-	ShutdownTimeout time.Duration
-}
-
-// Database описывает настройки подключения к PostgreSQL.
-type Database struct {
-	DSN             string
-	MaxConnections  int32
-	MinConnections  int32
-	MaxConnLifetime time.Duration
+	Bootstrap Bootstrap
 }
 
 // JWT описывает настройки выпуска access token.
@@ -46,7 +27,6 @@ type Media struct {
 	Token      string
 	Timeout    time.Duration
 	WorkerPoll time.Duration
-	WorkerHTTP string
 }
 
 // Bootstrap описывает данные первого суперпользователя.
@@ -58,23 +38,9 @@ type Bootstrap struct {
 	SuperuserLastName  string
 }
 
-// Load читает конфигурацию Users из environment и валидирует обязательные значения.
+// Load читает бизнес-конфигурацию Users из environment и валидирует обязательные значения.
 func Load() (Config, error) {
-	port := strings.TrimPrefix(env("PORT", "8080"), ":")
-
 	cfg := Config{
-		HTTP: HTTP{
-			Address:         ":" + port,
-			ReadTimeout:     envDuration("HTTP_READ_TIMEOUT", 5*time.Second),
-			WriteTimeout:    envDuration("HTTP_WRITE_TIMEOUT", 15*time.Second),
-			ShutdownTimeout: envDuration("SHUTDOWN_TIMEOUT", 10*time.Second),
-		},
-		Database: Database{
-			DSN:             env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/users?sslmode=disable"),
-			MaxConnections:  int32(envInt("DB_MAX_CONNS", 20)),
-			MinConnections:  int32(envInt("DB_MIN_CONNS", 2)),
-			MaxConnLifetime: envDuration("DB_MAX_CONN_LIFETIME", 30*time.Minute),
-		},
 		JWT: JWT{
 			Secret:   env("JWT_SECRET", "local-development-secret-change-me"),
 			Issuer:   env("JWT_ISSUER", "users"),
@@ -85,7 +51,6 @@ func Load() (Config, error) {
 			Token:      env("MEDIA_USERS_TOKEN", ""),
 			Timeout:    envDuration("MEDIA_TIMEOUT", 5*time.Second),
 			WorkerPoll: envDuration("USERS_WORKER_POLL_INTERVAL", time.Second),
-			WorkerHTTP: env("USERS_WORKER_HTTP_ADDR", ":8081"),
 		},
 		Bootstrap: Bootstrap{
 			SuperuserEmail:     env("BOOTSTRAP_SUPERUSER_EMAIL", ""),
@@ -96,18 +61,9 @@ func Load() (Config, error) {
 		},
 	}
 
-	if _, err := strconv.ParseUint(port, 10, 16); err != nil {
-		return Config{}, fmt.Errorf("PORT must be a valid TCP port: %w", err)
-	}
-
-	if cfg.Database.DSN == "" {
-		return Config{}, fmt.Errorf("DATABASE_URL must not be empty")
-	}
-
 	if cfg.JWT.Secret == "" {
 		return Config{}, fmt.Errorf("JWT_SECRET must not be empty")
 	}
-
 	if cfg.JWT.Lifetime <= 0 {
 		return Config{}, fmt.Errorf("JWT_TTL must be positive")
 	}
@@ -125,16 +81,6 @@ func env(key, fallback string) string {
 	}
 
 	return fallback
-}
-
-// envInt читает integer из environment variable и возвращает fallback при ошибке формата.
-func envInt(key string, fallback int) int {
-	value, err := strconv.Atoi(env(key, strconv.Itoa(fallback)))
-	if err != nil {
-		return fallback
-	}
-
-	return value
 }
 
 // envDuration читает duration из environment variable и возвращает fallback при ошибке формата.

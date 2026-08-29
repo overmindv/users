@@ -2,55 +2,51 @@ package app
 
 import (
 	"context"
-	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/overmindv/parker"
 	"github.com/overmindv/users/internal/auth"
 	"github.com/overmindv/users/internal/config"
+	graphqldelivery "github.com/overmindv/users/internal/delivery/graphql"
 	usersmedia "github.com/overmindv/users/internal/media"
-	"github.com/overmindv/users/internal/pkg/singleton"
 	postgresrepo "github.com/overmindv/users/internal/repository/postgres"
 	"github.com/overmindv/users/internal/security"
 	"github.com/overmindv/users/internal/usecase"
+	"github.com/overmindv/users/internal/worker"
 )
 
-// Container хранит собранные зависимости Users для runtime-слоя.
-type Container struct {
-	Config config.Config
-	Log    *slog.Logger
-	DB     *pgxpool.Pool
-	JWT    *auth.Manager
-	Users  *usecase.UserService
-}
-
-var (
-	databaseProvider singleton.Provider[*pgxpool.Pool]
-	tokenProvider    singleton.Provider[*auth.Manager]
-)
-
-// NewContainer создаёт dependency container, открывает БД, настраивает JWT и выполняет bootstrap суперпользователя.
-func NewContainer(ctx context.Context, cfg config.Config, log *slog.Logger) (*Container, error) {
-	db, err := databaseProvider.Get(func() (*pgxpool.Pool, error) {
-		return postgresrepo.Open(ctx, cfg.Database)
-	})
+// Build выполняет wiring бизнес-зависимостей Users на каркас parker:
+// открывает базу, настраивает JWT/media, регистрирует GraphQL-роуты, health-чекки
+// и фоновый воркер доставки avatar outbox. Инфраструктура — на стороне parker.
+func Build(app *parker.App) error {
+	cfg, err := config.Load()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	jwtManager, err := tokenProvider.Get(func() (*auth.Manager, error) {
-		return auth.NewManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.Lifetime), nil
-	})
+	pool, err := app.Postgres() // добавляет health-чек "postgres" в /ready
 	if err != nil {
-		db.Close()
-		return nil, err
+		return err
 	}
 
-	repository := postgresrepo.NewUserRepository(db)
+	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.Lifetime)
 
-	users := usecase.NewUserServiceWithMedia(repository, security.PlainTextHasher{}, jwtManager, uuidGenerator{}, systemClock{}, usersmedia.New(cfg.Media))
-	// Bootstrap выполняется при сборке container, чтобы первый админ был доступен до старта HTTP-server.
+	repository := postgresrepo.NewUserRepository(pool)
+	mediaClient := usersmedia.New(cfg.Media)
+	users := usecase.NewUserServiceWithMedia(
+		repository,
+		security.PlainTextHasher{},
+		jwtManager,
+		uuidGenerator{},
+		systemClock{},
+		mediaClient,
+	)
+
+	// Bootstrap первого администратора выполняется здесь, чтобы админ был доступен
+	// до старта HTTP-server.
+	ctx := context.Background()
 	if err := users.EnsureBootstrapSuperuser(ctx, usecase.BootstrapSuperuserInput{
 		Email:     cfg.Bootstrap.SuperuserEmail,
 		Password:  cfg.Bootstrap.SuperuserPassword,
@@ -58,21 +54,25 @@ func NewContainer(ctx context.Context, cfg config.Config, log *slog.Logger) (*Co
 		FirstName: cfg.Bootstrap.SuperuserFirstName,
 		LastName:  cfg.Bootstrap.SuperuserLastName,
 	}); err != nil {
-		db.Close()
-		return nil, err
+		return err
 	}
 
-	return &Container{
-		Config: cfg,
-		Log:    log,
-		DB:     db,
-		JWT:    jwtManager,
-		Users:  users,
-	}, nil
-}
+	// Готовность: postgres (через app.Postgres) + доступность Media.
+	app.AddHealthCheck("media", parker.HealthCheckFunc(mediaClient.Ready))
 
-// Close закрывает внешние ресурсы container.
-func (c *Container) Close() { c.DB.Close() }
+	// Фоновый доставщик transactional outbox аватаров (работает в том же процессе).
+	avatarWorker := worker.NewAvatar(postgresrepo.NewAvatarOutbox(pool), mediaClient, cfg.Media.WorkerPoll, app.Logger())
+	app.AddRunnable("avatar-outbox", avatarWorker.Run)
+
+	// GraphQL-транспорт; JWT применяется к /query и /graphql, но не к /playground.
+	graphqldelivery.Register(
+		app.HTTP(),
+		&graphqldelivery.Resolver{Users: users},
+		func(h http.Handler) http.Handler { return auth.OptionalHTTP(jwtManager, h) },
+		app.Logger(),
+	)
+	return nil
+}
 
 // uuidGenerator создаёт UUID для новых пользователей.
 type uuidGenerator struct{}
