@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/overmindv/parker"
 	"github.com/overmindv/users/internal/auth"
-	"github.com/overmindv/users/internal/config"
 	"github.com/overmindv/users/internal/domain"
 	postgresrepo "github.com/overmindv/users/internal/repository/postgres"
 	"github.com/overmindv/users/internal/security"
@@ -38,12 +38,7 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	pool, err := postgresrepo.Open(ctx, config.Database{
-		DSN:             dsn,
-		MaxConnections:  5,
-		MinConnections:  1,
-		MaxConnLifetime: time.Minute,
-	})
+	pool, err := parker.OpenPool(ctx, dsn)
 	if err != nil {
 		t.Fatal(err)
 	}

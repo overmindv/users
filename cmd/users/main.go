@@ -1,38 +1,20 @@
 package main
 
 import (
-	"context"
-	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/overmindv/parker"
 	"github.com/overmindv/users/internal/app"
-	"github.com/overmindv/users/internal/config"
 )
 
-// main загружает конфигурацию, собирает container и запускает HTTP runtime Users.
+// main запускает Users на каркасе parker: вся инфраструктура (конфиг, HTTP,
+// postgres+миграции, логирование, метрики, graceful shutdown) — внутри parker,
+// здесь только бизнес-lогика (см. app.Build).
 func main() {
-	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	os.Exit(parker.Main(run, parker.WithAppName("users")))
+}
 
-	cfg, err := config.Load()
-	if err != nil {
-		log.Error("load config", "error", err)
-		os.Exit(1)
-	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	container, err := app.NewContainer(ctx, cfg, log)
-	if err != nil {
-		log.Error("initialize users container", "error", err)
-		os.Exit(1)
-	}
-	defer container.Close()
-
-	if err := app.NewRuntime(container).Run(ctx); err != nil {
-		log.Error("run service", "error", err)
-		os.Exit(1)
-	}
+// run регистрирует бизнес-логику Users на каркас parker.
+func run(application *parker.App) error {
+	return app.Build(application)
 }

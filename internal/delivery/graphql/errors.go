@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	gqlgen "github.com/99designs/gqlgen/graphql"
+	"github.com/overmindv/parker"
 	"github.com/overmindv/users/internal/domain"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
@@ -37,7 +38,7 @@ func errorPresenter(log *slog.Logger) gqlgen.ErrorPresenterFunc {
 			if errors.As(err, &gqlErr) && gqlErr.Err != nil {
 				logError = gqlErr.Err
 			}
-			log.WarnContext(ctx, "graphql error", "request_id", requestID(ctx), "code", code, "error", logError)
+			log.WarnContext(ctx, "graphql error", "request_id", parker.RequestIDFrom(ctx), "code", code, "error", logError)
 		}
 
 		return presented

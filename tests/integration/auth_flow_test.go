@@ -154,14 +154,6 @@ func (graphQLClock) Now() time.Time {
 	return time.Date(2026, 7, 18, 10, 0, 0, 0, time.UTC)
 }
 
-// graphQLHealth имитирует успешный healthcheck для GraphQL handler.
-type graphQLHealth struct{}
-
-// Ping возвращает успешный результат healthcheck.
-func (graphQLHealth) Ping(context.Context) error {
-	return nil
-}
-
 // graphQLResponse описывает минимальную GraphQL response shape для assertions.
 type graphQLResponse struct {
 	Data   json.RawMessage `json:"data"`
@@ -191,11 +183,15 @@ func TestGraphQLAuthFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	handler := auth.OptionalHTTP(jwt, graphqldelivery.Handler(
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mux := http.NewServeMux()
+	graphqldelivery.Register(
+		mux,
 		&graphqldelivery.Resolver{Users: users},
-		graphQLHealth{},
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-	))
+		func(next http.Handler) http.Handler { return auth.OptionalHTTP(jwt, next) },
+		log,
+	)
+	handler := mux
 	studentToken, studentID := registerViaGraphQL(t, handler)
 	loginToken := loginViaGraphQL(t, handler, "student@example.com", "password")
 	if loginToken == "" || studentToken == "" {
