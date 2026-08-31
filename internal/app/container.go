@@ -19,7 +19,7 @@ import (
 
 // Build выполняет wiring бизнес-зависимостей Users на каркас parker:
 // открывает базу, настраивает JWT/media, регистрирует GraphQL-роуты, health-чекки
-// и фоновый воркер доставки avatar outbox. Инфраструктура — на стороне parker.
+// и фоновый воркер доставки avatar outbox.
 func Build(app *parker.App) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -44,8 +44,7 @@ func Build(app *parker.App) error {
 		mediaClient,
 	)
 
-	// Bootstrap первого администратора выполняется здесь, чтобы админ был доступен
-	// до старта HTTP-server.
+	// Bootstrap первого администратора выполняется здесь, чтобы админ был доступен до старта HTTP-server.
 	ctx := context.Background()
 	if err := users.EnsureBootstrapSuperuser(ctx, usecase.BootstrapSuperuserInput{
 		Email:     cfg.Bootstrap.SuperuserEmail,
@@ -60,7 +59,7 @@ func Build(app *parker.App) error {
 	// Готовность: postgres (через app.Postgres) + доступность Media.
 	app.AddHealthCheck("media", parker.HealthCheckFunc(mediaClient.Ready))
 
-	// Фоновый доставщик transactional outbox аватаров (работает в том же процессе).
+	// Фоновый доставщик transactional outbox аватаров.
 	avatarWorker := worker.NewAvatar(postgresrepo.NewAvatarOutbox(pool), mediaClient, cfg.Media.WorkerPoll, app.Logger())
 	app.AddRunnable("avatar-outbox", avatarWorker.Run)
 
