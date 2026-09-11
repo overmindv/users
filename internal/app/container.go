@@ -37,12 +37,14 @@ func Build(app *parker.App) error {
 	mediaClient := usersmedia.New(cfg.Media)
 	users := usecase.NewUserServiceWithMedia(
 		repository,
-		security.PlainTextHasher{},
+		security.NewArgon2IDHasher(),
 		jwtManager,
 		uuidGenerator{},
 		systemClock{},
 		mediaClient,
 	)
+	// Защита входа от перебора пароля по email.
+	users.SetLoginThrottler(security.NewMemoryLoginThrottler(cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.Window))
 
 	// Bootstrap первого администратора выполняется здесь, чтобы админ был доступен до старта HTTP-server.
 	ctx := context.Background()

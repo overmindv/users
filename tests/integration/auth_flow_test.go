@@ -122,6 +122,11 @@ func (r *graphQLUserRepository) Update(_ context.Context, user *domain.User) err
 	return nil
 }
 
+// UpdatePassword сохраняет новый hash пароля через общий update helper.
+func (r *graphQLUserRepository) UpdatePassword(ctx context.Context, user *domain.User) error {
+	return r.Update(ctx, user)
+}
+
 // UpdateRoles сохраняет изменения ролей через общий update helper.
 func (r *graphQLUserRepository) UpdateRoles(ctx context.Context, user *domain.User) error {
 	return r.Update(ctx, user)

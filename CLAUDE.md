@@ -48,14 +48,17 @@ internal/
 - **Транспорт** — GraphQL (gqlgen). Схема в `api/graphql/schema.graphqls`; сгенерированный код в `internal/delivery/graphql/generated`. JWT применяется к `/query` и `/graphql`, но не к `/playground` (auth.OptionalHTTP).
 - **Каркас** — `github.com/overmindv/parker`: владеет инфраструктурным конфигом (HTTP, PostgreSQL, логирование, метрики, health-чеки), миграциями и graceful shutdown. Users добавляет только бизнес-настройки и регистрирует health-чек `media`.
 - **Bootstrap суперпользователя** — `EnsureBootstrapSuperuser` выполняется в `Build` до старта HTTP, чтобы первый админ был доступен сразу.
+- **Хранение паролей** — `security.Argon2IDHasher` хэширует пароль Argon2id (64 MiB, t=2, p=2, соль 16 байт), формат `$argon2id$...`. Пароль хранится только как необратимый hash — восстановить его невозможно. `Compare` делает постоянное-временное сравнение, никогда не логирует ни пароль, ни его hash.
+- **Ленивая миграция паролей** — при успешном `Login`, если сохранённый hash устарел (не Argon2id, например открытый текст из прототипа), он пере-хэшируется Argon2id и сохраняется через `repository.UpdatePassword` в той же транзакции входа.
+- **Защита входа от перебора** — `security.MemoryLoginThrottler` ограничивает число попыток `Login` по email (по умолчанию 5 за 15 минут, настраивается). При превышении возвращается `ErrTooManyRequests` → GraphQL code `RATE_LIMITED`. Успешный вход сбрасывает счётчик.
 - **Transactional outbox аватаров** — перед изменением avatar сервис проверяет готовый публичный файл через Media, затем атомарно сохраняет `avatar_file_id` и outbox-событие в одной транзакции; `users-worker` идемпотентно переключает binding в Media. Временная недоступность Media не теряет изменение.
 - **Миграции** — goose, файлы в `migrations/`, прокатываются через сам бинарник (`go run ./cmd/users migrate ...`).
 
 ## Config (env)
 
-Обязательные: `JWT_SECRET`, `MEDIA_URL`, `MEDIA_USERS_TOKEN`. Опциональные: `JWT_ISSUER`, `JWT_TTL`, `MEDIA_TIMEOUT`, `USERS_WORKER_POLL_INTERVAL`, `BOOTSTRAP_SUPERUSER_*`. Инфраструктурные переменные (HTTP, PostgreSQL, логирование) читает parker.
+Обязательные: `JWT_SECRET`, `MEDIA_URL`, `MEDIA_USERS_TOKEN`. Опциональные: `JWT_ISSUER`, `JWT_TTL`, `MEDIA_TIMEOUT`, `USERS_WORKER_POLL_INTERVAL`, `BOOTSTRAP_SUPERUSER_*`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_THROTTLE_WINDOW`. Инфраструктурные переменные (HTTP, PostgreSQL, логирование) читает parker.
 
 ## Notes
 
-- Пароли шифруются через `security.PasswordHasher`; `PlainTextHasher` используется только для локальной разработки — не использовать в проде.
+- В проде подключается `security.Argon2IDHasher`; `PlainTextHasher` существует только для unit-тестов и никогда не подключается в `container.go`.
 - Изменение схемы GraphQL требует `make generate` (gqlgen), измение мапперов в `delivery/graphql/mapper.go`.
