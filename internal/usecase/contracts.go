@@ -16,6 +16,7 @@ type UserRepository interface {
 	List(context.Context, string, int, int) ([]*domain.User, error)
 	ListPublic(context.Context, string, int, int) ([]*domain.User, error)
 	Update(context.Context, *domain.User) error
+	UpdatePassword(context.Context, *domain.User) error
 	SetAvatar(context.Context, *domain.User) error
 	UpdateRoles(context.Context, *domain.User) error
 	SoftDelete(context.Context, *domain.User) error
@@ -25,6 +26,16 @@ type UserRepository interface {
 type PasswordHasher interface {
 	Hash(string) (string, error)
 	Compare(hash, password string) error
+	// RequiresUpgrade сообщает, что сохранённый hash устарел и должен быть пересчитан после успешного Compare.
+	RequiresUpgrade(hash string) bool
+}
+
+// LoginThrottler ограничивает число попыток входа по ключу (например, email) против перебора пароля.
+type LoginThrottler interface {
+	// Allow возвращает true, если попытка в момент now разрешена.
+	Allow(key string, now time.Time) bool
+	// Reset сбрасывает счётчик попыток после успешного входа.
+	Reset(key string)
 }
 
 // TokenManager задаёт contract выпуска и разбора access token.

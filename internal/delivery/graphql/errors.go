@@ -55,6 +55,8 @@ func domainError(err error) (string, string) {
 		return "FORBIDDEN", genericMessage
 	case errors.Is(err, domain.ErrUnauthorized), errors.Is(err, domain.ErrInvalidCredentials):
 		return "UNAUTHENTICATED", genericMessage
+	case errors.Is(err, domain.ErrTooManyRequests):
+		return "RATE_LIMITED", genericMessage
 	case errors.Is(err, domain.ErrUserNotFound):
 		return "NOT_FOUND", genericMessage
 	case errors.Is(err, domain.ErrEmailAlreadyExists), errors.Is(err, domain.ErrUsernameExists):

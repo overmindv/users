@@ -165,6 +165,22 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
+// UpdatePassword сохраняет новый hash пароля (например, при ленивой миграции).
+func (r *UserRepository) UpdatePassword(ctx context.Context, user *domain.User) error {
+	result, err := r.pool.Exec(ctx, `
+		UPDATE users SET password_hash=$2, updated_at=$3
+		WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.PasswordHash(), user.UpdatedAt())
+	if err != nil {
+		return fmt.Errorf("update user password: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
 // UpdateRoles сохраняет роли пользователя и флаг суперпользователя.
 func (r *UserRepository) UpdateRoles(ctx context.Context, user *domain.User) error {
 	result, err := r.pool.Exec(ctx, `

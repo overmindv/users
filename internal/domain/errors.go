@@ -14,6 +14,7 @@ var (
 	ErrEmailAlreadyExists    = errors.New("email already exists")
 	ErrUsernameExists        = errors.New("username already exists")
 	ErrInvalidCredentials    = errors.New("invalid credentials")
+	ErrTooManyRequests       = errors.New("too many login attempts")
 	ErrUnauthorized          = errors.New("unauthorized")
 	ErrPermissionDenied      = errors.New("permission denied")
 	ErrCannotDemoteSuperuser = errors.New("superuser admin role cannot be removed")

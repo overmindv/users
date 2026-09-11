@@ -3,15 +3,17 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
 
-// Config объединяет бизнес-настройки Users: JWT, Media и bootstrap-пользователя.
+// Config объединяет бизнес-настройки Users: JWT, Media, bootstrap и защиту входа.
 // Инфраструктурный конфиг (HTTP, PostgreSQL, логирование, метрики) владеет parker.
 type Config struct {
-	JWT       JWT
-	Media     Media
-	Bootstrap Bootstrap
+	JWT           JWT
+	Media         Media
+	Bootstrap     Bootstrap
+	LoginThrottle LoginThrottle
 }
 
 // JWT описывает настройки выпуска access token.
@@ -38,6 +40,12 @@ type Bootstrap struct {
 	SuperuserLastName  string
 }
 
+// LoginThrottle описывает защиту от перебора пароля при входе.
+type LoginThrottle struct {
+	MaxAttempts int
+	Window      time.Duration
+}
+
 // Load читает бизнес-конфигурацию Users из environment и валидирует обязательные значения.
 func Load() (Config, error) {
 	cfg := Config{
@@ -58,6 +66,10 @@ func Load() (Config, error) {
 			SuperuserUsername:  env("BOOTSTRAP_SUPERUSER_USERNAME", "superadmin"),
 			SuperuserFirstName: env("BOOTSTRAP_SUPERUSER_FIRST_NAME", "Super"),
 			SuperuserLastName:  env("BOOTSTRAP_SUPERUSER_LAST_NAME", "Admin"),
+		},
+		LoginThrottle: LoginThrottle{
+			MaxAttempts: envInt("LOGIN_MAX_ATTEMPTS", 5),
+			Window:      envDuration("LOGIN_THROTTLE_WINDOW", 15*time.Minute),
 		},
 	}
 
@@ -81,6 +93,16 @@ func env(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+// envInt читает целое число из environment variable и возвращает fallback при ошибке формата.
+func envInt(key string, fallback int) int {
+	value, err := strconv.Atoi(env(key, ""))
+	if err != nil {
+		return fallback
+	}
+
+	return value
 }
 
 // envDuration читает duration из environment variable и возвращает fallback при ошибке формата.

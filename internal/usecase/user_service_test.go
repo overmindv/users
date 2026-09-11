@@ -124,6 +124,11 @@ func (r *fakeRepository) Update(_ context.Context, user *domain.User) error {
 	return nil
 }
 
+// UpdatePassword сохраняет новый hash пароля в test repository.
+func (r *fakeRepository) UpdatePassword(_ context.Context, user *domain.User) error {
+	return r.Update(context.Background(), user)
+}
+
 // UpdateRoles сохраняет изменения ролей в test repository.
 func (r *fakeRepository) UpdateRoles(_ context.Context, user *domain.User) error {
 	if r.updateErr != nil {
@@ -217,6 +222,9 @@ func (brokenHasher) Hash(string) (string, error) { return "", errors.New("hash f
 
 // Compare возвращает ошибку compare для negative-тестов.
 func (brokenHasher) Compare(string, string) error { return errors.New("compare failed") }
+
+// RequiresUpgrade возвращает false, чтобы не влиять на negative-тесты входа.
+func (brokenHasher) RequiresUpgrade(string) bool { return false }
 
 // newService собирает UserService с test dependencies.
 func newService(repository *fakeRepository) *UserService {

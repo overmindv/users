@@ -302,6 +302,12 @@ func (u *User) Email() Email { return u.email }
 // PasswordHash возвращает сохранённый hash пароля.
 func (u *User) PasswordHash() string { return u.passwordHash }
 
+// SetPassword заменяет hash пароля, например при ленивой миграции на более сильный алгоритм.
+func (u *User) SetPassword(hash string, now time.Time) {
+	u.passwordHash = hash
+	u.updatedAt = now
+}
+
 // Username возвращает username пользователя.
 func (u *User) Username() Username { return u.username }
 

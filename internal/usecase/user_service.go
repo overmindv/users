@@ -18,6 +18,7 @@ type UserService struct {
 	ids        IDGenerator
 	clock      Clock
 	media      UserMediaStorage
+	throttler  LoginThrottler
 }
 
 // NewUserServiceWithMedia собирает Users usecase с проверкой файлов через Media.
@@ -31,6 +32,11 @@ func NewUserServiceWithMedia(repository UserRepository, passwords PasswordHasher
 // NewUserService собирает user usecase из repository, password service, token manager, ID generator и clock.
 func NewUserService(repository UserRepository, passwords PasswordHasher, tokens TokenManager, ids IDGenerator, clock Clock) *UserService {
 	return &UserService{repository: repository, passwords: passwords, tokens: tokens, ids: ids, clock: clock}
+}
+
+// SetLoginThrottler задаёт ограничитель попыток входа. nil допустим и отключает лимит.
+func (s *UserService) SetLoginThrottler(throttler LoginThrottler) {
+	s.throttler = throttler
 }
 
 // EnsureBootstrapSuperuser создаёт или повышает первого суперпользователя из конфигурации запуска.
@@ -141,10 +147,17 @@ func (s *UserService) Register(ctx context.Context, input RegisterInput) (*AuthR
 
 // Login проверяет email и пароль существующего пользователя и возвращает JWT.
 // Если пользователь не найден, аккаунт не создаётся и возвращается ошибка входа.
+// Число попыток по email ограничивается throttler против перебора пароля, а устаревший
+// hash пароля лениво пере-хэшируется Argon2id после успешной проверки.
 func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult, error) {
 	email, err := domain.NewEmail(input.Email)
 	if err != nil {
 		return nil, domain.ErrInvalidCredentials
+	}
+
+	key := email.String()
+	if s.throttler != nil && !s.throttler.Allow(key, s.clock.Now()) {
+		return nil, domain.ErrTooManyRequests
 	}
 
 	user, err := s.repository.GetByEmail(ctx, email)
@@ -157,6 +170,21 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 
 	if err := s.passwords.Compare(user.PasswordHash(), input.Password); err != nil {
 		return nil, domain.ErrInvalidCredentials
+	}
+
+	if s.throttler != nil {
+		s.throttler.Reset(key)
+	}
+
+	if s.passwords.RequiresUpgrade(user.PasswordHash()) {
+		hash, err := s.passwords.Hash(input.Password)
+		if err != nil {
+			return nil, fmt.Errorf("rehash password: %w", err)
+		}
+		user.SetPassword(hash, s.clock.Now())
+		if err := s.repository.UpdatePassword(ctx, user); err != nil {
+			return nil, fmt.Errorf("upgrade password hash: %w", err)
+		}
 	}
 
 	return s.authResult(user)
