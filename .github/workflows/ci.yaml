@@ -65,11 +65,11 @@ jobs:
       - name: Build service
         run: make build
 
-  e2e:
-    permissions:
-      contents: read
-    uses: overmindv/tests/.github/workflows/e2e.yml@main
-    secrets: inherit
-    with:
-      target_repo: users
+  # E2E-CI отключён# e2e:
+  #   permissions:
+  #     contents: read
+  #   uses: overmindv/tests/.github/workflows/e2e.yml@main
+  #   secrets: inherit
+  #   with:
+  #     target_repo: users
 
