@@ -42,8 +42,9 @@ type Bootstrap struct {
 
 // LoginThrottle описывает защиту от перебора пароля при входе.
 type LoginThrottle struct {
-	MaxAttempts int
-	Window      time.Duration
+	MaxAttempts   int
+	IPMaxAttempts int
+	Window        time.Duration
 }
 
 // Load читает бизнес-конфигурацию Users из environment и валидирует обязательные значения.
@@ -68,9 +69,35 @@ func Load() (Config, error) {
 			SuperuserLastName:  env("BOOTSTRAP_SUPERUSER_LAST_NAME", "Admin"),
 		},
 		LoginThrottle: LoginThrottle{
-			MaxAttempts: envInt("LOGIN_MAX_ATTEMPTS", 5),
-			Window:      envDuration("LOGIN_THROTTLE_WINDOW", 15*time.Minute),
+			MaxAttempts:   envInt("LOGIN_MAX_ATTEMPTS", 5),
+			IPMaxAttempts: envInt("LOGIN_IP_MAX_ATTEMPTS", 100),
+			Window:        envDuration("LOGIN_THROTTLE_WINDOW", 15*time.Minute),
 		},
+	}
+
+	// Лимиты не должны незаметно отключаться из-за ошибки конфигурации.
+	for _, setting := range []struct {
+		name   string
+		target *int
+		max    int
+	}{
+		{"LOGIN_MAX_ATTEMPTS", &cfg.LoginThrottle.MaxAttempts, 10000},
+		{"LOGIN_IP_MAX_ATTEMPTS", &cfg.LoginThrottle.IPMaxAttempts, 100000},
+	} {
+		if raw, present := os.LookupEnv(setting.name); present {
+			value, err := strconv.Atoi(raw)
+			if err != nil || value < 1 || value > setting.max {
+				return Config{}, fmt.Errorf("%s is out of range", setting.name)
+			}
+			*setting.target = value
+		}
+	}
+	if raw, present := os.LookupEnv("LOGIN_THROTTLE_WINDOW"); present {
+		value, err := time.ParseDuration(raw)
+		if err != nil || value < time.Second || value > 24*time.Hour {
+			return Config{}, fmt.Errorf("LOGIN_THROTTLE_WINDOW is out of range")
+		}
+		cfg.LoginThrottle.Window = value
 	}
 
 	if cfg.JWT.Secret == "" {

@@ -38,6 +38,7 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 // Login обрабатывает публичный вход пользователя.
 func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
 	result, err := r.Users.Login(ctx, usecase.LoginInput{
+		ClientIP: auth.ClientIP(ctx),
 		Email:    input.Email,
 		Password: input.Password,
 	})

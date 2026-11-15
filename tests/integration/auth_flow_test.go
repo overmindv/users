@@ -417,3 +417,32 @@ func decodeData(t *testing.T, data json.RawMessage, target any) {
 		t.Fatal(err)
 	}
 }
+
+type capturingLoginThrottle struct{ email, ip string }
+
+func (c *capturingLoginThrottle) Check(_ context.Context, email, ip string) (bool, error) {
+	c.email, c.ip = email, ip
+	return false, nil
+}
+func (*capturingLoginThrottle) ResetEmail(context.Context, string) error { return nil }
+
+func TestLoginResolverUsesTrustedTransportIP(t *testing.T) {
+	users := usecase.NewUserService(newGraphQLUserRepository(), security.PlainTextHasher{}, auth.NewManager("test", "users", time.Hour), &graphQLIDs{}, graphQLClock{})
+	throttle := &capturingLoginThrottle{}
+	users.SetLoginThrottler(throttle)
+	mux := http.NewServeMux()
+	graphqldelivery.Register(mux, &graphqldelivery.Resolver{Users: users}, func(h http.Handler) http.Handler { return auth.LoginClientIP("test", h) }, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	req := httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(`{"query":"mutation { login(input: {email: \" USER@EXAMPLE.COM \", password: \"wrong\"}) { token } }"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Forwarded-For", "198.51.100.1")
+	req.Header.Set("X-Login-Client-IP", "198.51.100.1")
+	req.RemoteAddr = "192.0.2.1:1234"
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, req)
+	if throttle.email != "user@example.com" || throttle.ip != "192.0.2.1" {
+		t.Fatalf("identity: %+v", throttle)
+	}
+	if !strings.Contains(response.Body.String(), "RATE_LIMITED") {
+		t.Fatal("missing rate limit error")
+	}
+}

@@ -28,6 +28,7 @@ type BootstrapSuperuserInput struct {
 
 // LoginInput описывает данные входа пользователя.
 type LoginInput struct {
+	ClientIP string // Проверенный транспортом IP, не поле публичной GraphQL-схемы.
 	Email    string
 	Password string
 }

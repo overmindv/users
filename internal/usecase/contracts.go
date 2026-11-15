@@ -32,10 +32,8 @@ type PasswordHasher interface {
 
 // LoginThrottler ограничивает число попыток входа по ключу (например, email) против перебора пароля.
 type LoginThrottler interface {
-	// Allow возвращает true, если попытка в момент now разрешена.
-	Allow(key string, now time.Time) bool
-	// Reset сбрасывает счётчик попыток после успешного входа.
-	Reset(key string)
+	Check(ctx context.Context, email, clientIP string) (bool, error)
+	ResetEmail(ctx context.Context, email string) error
 }
 
 // TokenManager задаёт contract выпуска и разбора access token.

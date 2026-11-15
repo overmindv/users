@@ -50,13 +50,13 @@ internal/
 - **Bootstrap суперпользователя** — `EnsureBootstrapSuperuser` выполняется в `Build` до старта HTTP, чтобы первый админ был доступен сразу.
 - **Хранение паролей** — `security.Argon2IDHasher` хэширует пароль Argon2id (64 MiB, t=2, p=2, соль 16 байт), формат `$argon2id$...`. Пароль хранится только как необратимый hash — восстановить его невозможно. `Compare` делает постоянное-временное сравнение, никогда не логирует ни пароль, ни его hash.
 - **Ленивая миграция паролей** — при успешном `Login`, если сохранённый hash устарел (не Argon2id, например открытый текст из прототипа), он пере-хэшируется Argon2id и сохраняется через `repository.UpdatePassword` в той же транзакции входа.
-- **Защита входа от перебора** — `security.MemoryLoginThrottler` ограничивает число попыток `Login` по email (по умолчанию 5 за 15 минут, настраивается). При превышении возвращается `ErrTooManyRequests` → GraphQL code `RATE_LIMITED`. Успешный вход сбрасывает счётчик.
+- **Защита входа от перебора** — `postgres.LoginThrottler` разделяет TTL buckets между репликами: 5 попыток/email и 100/IP за 15 минут по умолчанию. При превышении — `ErrTooManyRequests` → GraphQL code `RATE_LIMITED`; сбой БД не разрешает вход. Успех сбрасывает только email. IP принимается из подписанного gateway-контекста либо TCP peer, XFF игнорируется. Ключи в БД — HMAC; cleanup удаляет до 1000 истёкших bucket в минуту.
 - **Transactional outbox аватаров** — перед изменением avatar сервис проверяет готовый публичный файл через Media, затем атомарно сохраняет `avatar_file_id` и outbox-событие в одной транзакции; `users-worker` идемпотентно переключает binding в Media. Временная недоступность Media не теряет изменение.
 - **Миграции** — goose, файлы в `migrations/`, прокатываются через сам бинарник (`go run ./cmd/users migrate ...`).
 
 ## Config (env)
 
-Обязательные: `JWT_SECRET`, `MEDIA_URL`, `MEDIA_USERS_TOKEN`. Опциональные: `JWT_ISSUER`, `JWT_TTL`, `MEDIA_TIMEOUT`, `USERS_WORKER_POLL_INTERVAL`, `BOOTSTRAP_SUPERUSER_*`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_THROTTLE_WINDOW`. Инфраструктурные переменные (HTTP, PostgreSQL, логирование) читает parker.
+Обязательные: `JWT_SECRET`, `MEDIA_URL`, `MEDIA_USERS_TOKEN`. Опциональные: `JWT_ISSUER`, `JWT_TTL`, `MEDIA_TIMEOUT`, `USERS_WORKER_POLL_INTERVAL`, `BOOTSTRAP_SUPERUSER_*`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_IP_MAX_ATTEMPTS`, `LOGIN_THROTTLE_WINDOW`. Инфраструктурные переменные (HTTP, PostgreSQL, логирование) читает parker.
 
 ## Notes
 

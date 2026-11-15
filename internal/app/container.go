@@ -43,8 +43,10 @@ func Build(app *parker.App) error {
 		systemClock{},
 		mediaClient,
 	)
-	// Защита входа от перебора пароля по email.
-	users.SetLoginThrottler(security.NewMemoryLoginThrottler(cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.Window))
+	// Общие для всех реплик лимиты по email и доверенному IP.
+	throttle := postgresrepo.NewLoginThrottler(pool, cfg.JWT.Secret, cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.IPMaxAttempts, cfg.LoginThrottle.Window)
+	users.SetLoginThrottler(throttle)
+	app.AddRunnable("login-throttle-cleanup", worker.RunLoginThrottleCleanup(throttle, app.Logger()))
 
 	// Bootstrap первого администратора выполняется здесь, чтобы админ был доступен до старта HTTP-server.
 	ctx := context.Background()
@@ -69,7 +71,9 @@ func Build(app *parker.App) error {
 	graphqldelivery.Register(
 		app.HTTP(),
 		&graphqldelivery.Resolver{Users: users},
-		func(h http.Handler) http.Handler { return auth.OptionalHTTP(jwtManager, h) },
+		func(h http.Handler) http.Handler {
+			return auth.LoginClientIP(cfg.JWT.Secret, auth.OptionalHTTP(jwtManager, h))
+		},
 		app.Logger(),
 	)
 	return nil

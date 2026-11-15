@@ -1,13 +1,13 @@
 package security
 
 import (
+	"context"
 	"sync"
 	"time"
 )
 
 // MemoryLoginThrottler ограничивает число попыток входа по ключу (например, email)
-// фиксированным окном времени. Хранится в памяти одного инстанса — для прототипа достаточно;
-// в распределённом варианте счётчики следует выносить в Redis/PostgreSQL.
+// фиксированным окном времени. Используется только в unit-тестах; production — PostgreSQL.
 type MemoryLoginThrottler struct {
 	mu          sync.Mutex
 	maxAttempts int
@@ -50,4 +50,15 @@ func (t *MemoryLoginThrottler) Reset(key string) {
 
 	delete(t.windowStart, key)
 	delete(t.attempts, key)
+}
+
+// Check реализует контракт тестового in-memory ограничителя.
+func (t *MemoryLoginThrottler) Check(_ context.Context, email, _ string) (bool, error) {
+	return t.Allow(email, time.Now()), nil
+}
+
+// ResetEmail реализует контракт тестового in-memory ограничителя.
+func (t *MemoryLoginThrottler) ResetEmail(_ context.Context, email string) error {
+	t.Reset(email)
+	return nil
 }

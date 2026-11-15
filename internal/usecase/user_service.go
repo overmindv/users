@@ -156,8 +156,14 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 	}
 
 	key := email.String()
-	if s.throttler != nil && !s.throttler.Allow(key, s.clock.Now()) {
-		return nil, domain.ErrTooManyRequests
+	if s.throttler != nil {
+		allowed, err := s.throttler.Check(ctx, key, input.ClientIP)
+		if err != nil {
+			return nil, fmt.Errorf("check login throttle: %w", err)
+		}
+		if !allowed {
+			return nil, domain.ErrTooManyRequests
+		}
 	}
 
 	user, err := s.repository.GetByEmail(ctx, email)
@@ -173,7 +179,9 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 	}
 
 	if s.throttler != nil {
-		s.throttler.Reset(key)
+		if err := s.throttler.ResetEmail(ctx, key); err != nil {
+			return nil, fmt.Errorf("reset login throttle: %w", err)
+		}
 	}
 
 	if s.passwords.RequiresUpgrade(user.PasswordHash()) {

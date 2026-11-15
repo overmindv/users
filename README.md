@@ -48,3 +48,22 @@ PostgreSQL component-тесты требуют отдельный DSN и зап�
 ```bash
 make ctest COMPONENT_TEST_DSN='postgres://postgres:postgres@localhost:5432/users?sslmode=disable'
 ```
+
+
+## Лимиты входа
+
+PostgreSQL `login_throttle_buckets` хранит общие для реплик fixed-window лимиты:
+`LOGIN_MAX_ATTEMPTS=5` по email (1–10000), `LOGIN_IP_MAX_ATTEMPTS=100` по IP
+(1–100000), `LOGIN_THROTTLE_WINDOW=15m` (1s–24h). Миграции обязательны до запуска.
+Рестарт не сбрасывает счётчики. При ошибке хранилища вход запрещён. Успешный вход
+обнуляет только email. Истёкшие окна обновляются атомарно; cleanup каждого API
+удаляет не более 1000 старых записей в минуту, не трогая активные запросы.
+
+В БД сохраняются HMAC-SHA256 идентификаторы вместо email/IP. `JWT_SECRET` должен
+совпадать на всех репликах и gateway; его ротация начинает новые окна.
+Gateway подписывает `X-Login-Client-IP` и `X-Login-Client-Time` заголовком
+`X-Login-Client-Signature`; users проверяет подпись и возраст до 60 секунд
+(допускается 5 секунд вперёд). Нужны синхронизированные часы. Без валидной подписи
+используется TCP peer. XFF/Forwarded не доверяются. За reverse proxy IP-квота
+общая для его адреса; отдельное доверие proxy в этой реализации не настраивается.
+Публичная GraphQL-схема поля IP не содержит. Идентификаторы/подписи не логируются.

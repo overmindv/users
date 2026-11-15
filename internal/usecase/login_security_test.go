@@ -135,3 +135,58 @@ func TestLoginResetsCounterOnSuccess(t *testing.T) {
 		t.Fatalf("expected too many requests after renewed failures, got %v", err)
 	}
 }
+
+type loginThrottleStub struct {
+	allowed            bool
+	checkErr, resetErr error
+	email, ip          string
+}
+
+func (s *loginThrottleStub) Check(_ context.Context, email, ip string) (bool, error) {
+	s.email, s.ip = email, ip
+	return s.allowed, s.checkErr
+}
+func (s *loginThrottleStub) ResetEmail(context.Context, string) error { return s.resetErr }
+
+func TestLoginThrottleFailsClosedAndUsesNormalizedIdentity(t *testing.T) {
+	repo := newFakeRepository()
+	service := NewUserService(repo, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Now()})
+	if _, err := service.Register(context.Background(), RegisterInput{Email: "user@example.com", Password: "password", Username: "user"}); err != nil {
+		t.Fatal(err)
+	}
+	failure := errors.New("storage unavailable")
+	throttle := &loginThrottleStub{allowed: true, checkErr: failure}
+	service.SetLoginThrottler(throttle)
+	input := LoginInput{Email: " USER@EXAMPLE.COM ", Password: "password", ClientIP: "192.0.2.1"}
+	if result, err := service.Login(context.Background(), input); result != nil || !errors.Is(err, failure) {
+		t.Fatalf("check bypass: %v %v", result, err)
+	}
+	if throttle.email != "user@example.com" || throttle.ip != input.ClientIP {
+		t.Fatal("identity not normalized/passed")
+	}
+	throttle.checkErr, throttle.resetErr = nil, failure
+	if result, err := service.Login(context.Background(), input); result != nil || !errors.Is(err, failure) {
+		t.Fatalf("reset bypass: %v %v", result, err)
+	}
+}
+
+func TestUnknownAccountHasSameLoginErrorsAndLimit(t *testing.T) {
+	repo := newFakeRepository()
+	service := NewUserService(repo, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Now()})
+	if _, err := service.Register(context.Background(), RegisterInput{Email: "known@example.com", Password: "password", Username: "user"}); err != nil {
+		t.Fatal(err)
+	}
+	service.SetLoginThrottler(security.NewMemoryLoginThrottler(2, time.Minute))
+	for i := 0; i < 3; i++ {
+		for _, email := range []string{"known@example.com", "unknown@example.com"} {
+			_, err := service.Login(context.Background(), LoginInput{Email: email, Password: "wrong"})
+			want := domain.ErrInvalidCredentials
+			if i == 2 {
+				want = domain.ErrTooManyRequests
+			}
+			if !errors.Is(err, want) {
+				t.Fatalf("attempt %d: %v", i, err)
+			}
+		}
+	}
+}
