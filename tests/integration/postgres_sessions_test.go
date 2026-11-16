@@ -108,6 +108,10 @@ func TestPostgresSessionRejectsRestoredRoles(t *testing.T) {
 	ctx := context.Background()
 	pool := throttlePool(t)
 	repo := postgresrepo.NewUserRepository(pool)
+	backup := uuid.NewString()
+	if _, err := pool.Exec(ctx, `INSERT INTO users(id,email,password_hash,username,roles,created_at,updated_at) VALUES($1,$2,'$argon2id$test',$3,ARRAY['admin'],now(),now())`, backup, backup+"@example.com", "b"+backup[:8]); err != nil {
+		t.Fatal(err)
+	}
 	id := uuid.NewString()
 	u, _ := domain.NewUser(domain.NewUserParams{ID: id, Email: domain.Email(id + "@example.com"), Username: domain.Username("u" + id[:8]), PasswordHash: "hash", Now: time.Now()})
 	if err := repo.Create(ctx, u); err != nil {

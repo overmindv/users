@@ -37,7 +37,7 @@ func (r *UserRepository) CreateSession(ctx context.Context, user *domain.User, i
 // CheckSession получает свежие роли только для действующей версии сессии.
 func (r *UserRepository) CheckSession(ctx context.Context, userID, id string, version int64) ([]string, error) {
 	var roles []string
-	err := r.pool.QueryRow(ctx, `SELECT u.roles FROM users u JOIN user_sessions s ON s.user_id=u.id WHERE u.id=$1 AND s.id=$2 AND s.security_version=$3 AND u.security_version=s.security_version AND u.deleted_at IS NULL AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()`, userID, id, version).Scan(&roles)
+	err := r.pool.QueryRow(ctx, `SELECT u.roles FROM users u JOIN user_sessions s ON s.user_id=u.id WHERE u.id=$1 AND s.id=$2 AND s.security_version=$3 AND u.security_version=s.security_version AND u.deleted_at IS NULL AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND ($4 OR (u.id::text NOT LIKE '00000000-0000-0000-0000-0000000000%' AND u.password_hash LIKE '$argon2id$%'))`, userID, id, version, r.localCredentials).Scan(&roles)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrUnauthorized
 	}
@@ -53,12 +53,20 @@ func (r *UserRepository) RevokeSession(ctx context.Context, userID, id string) e
 // UpgradePassword не перезаписывает пароль, изменённый после проверки входа.
 func (r *UserRepository) UpgradePassword(ctx context.Context, user *domain.User, previous string) error {
 
+	tx, err := r.securityTx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
 	var version int64
-	err := r.pool.QueryRow(ctx, `UPDATE users SET password_hash=$2,updated_at=$3 WHERE id=$1 AND deleted_at IS NULL AND password_hash=$4 AND security_version=$5 RETURNING security_version`, user.ID(), user.PasswordHash(), user.UpdatedAt(), previous, user.SecurityVersion()).Scan(&version)
+	err = tx.QueryRow(ctx, `UPDATE users SET password_hash=$2,updated_at=$3 WHERE id=$1 AND deleted_at IS NULL AND password_hash=$4 AND security_version=$5 RETURNING security_version`, user.ID(), user.PasswordHash(), user.UpdatedAt(), previous, user.SecurityVersion()).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.ErrUnauthorized
 	}
 	if err != nil {
+		return err
+	}
+	if err = tx.Commit(ctx); err != nil {
 		return err
 	}
 	user.SetSecurityVersion(version)

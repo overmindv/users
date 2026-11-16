@@ -190,3 +190,28 @@ func TestUnknownAccountHasSameLoginErrorsAndLimit(t *testing.T) {
 		}
 	}
 }
+
+func TestNonLocalRejectsDemoAndLegacyCredentials(t *testing.T) {
+	for _, id := range []string{"00000000-0000-0000-0000-000000000001", "regular-user"} {
+		t.Run(id, func(t *testing.T) {
+			repo := newFakeRepository()
+			email, _ := domain.NewEmail("demo@example.com")
+			username, _ := domain.NewUsername("demo_user")
+			hash := "password"
+			if strings.HasPrefix(id, "00000000") {
+				var err error
+				hash, err = security.NewArgon2IDHasher().Hash("password")
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			user, _ := domain.NewUser(domain.NewUserParams{ID: id, Email: email, Username: username, PasswordHash: hash, Now: time.Now()})
+			repo.users[id] = user
+			service := NewUserService(repo, security.NewArgon2IDHasher(), fakeTokens{}, fakeIDs{}, fakeClock{time.Now()})
+			service.SetLocalCredentials(false)
+			if _, err := service.Login(context.Background(), LoginInput{Email: "demo@example.com", Password: "password"}); !errors.Is(err, domain.ErrInvalidCredentials) {
+				t.Fatalf("unsafe account accepted: %v", err)
+			}
+		})
+	}
+}

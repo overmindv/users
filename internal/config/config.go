@@ -10,6 +10,7 @@ import (
 // Config объединяет бизнес-настройки Users: JWT, Media, bootstrap и защиту входа.
 // Инфраструктурный конфиг (HTTP, PostgreSQL, логирование, метрики) владеет parker.
 type Config struct {
+	Profile       string
 	JWT           JWT
 	Media         Media
 	Bootstrap     Bootstrap
@@ -50,6 +51,7 @@ type LoginThrottle struct {
 // Load читает бизнес-конфигурацию Users из environment и валидирует обязательные значения.
 func Load() (Config, error) {
 	cfg := Config{
+		Profile: env("USERS_PROFILE", "local"),
 		JWT: JWT{
 			Secret:   env("JWT_SECRET", "local-development-secret-change-me"),
 			Issuer:   env("JWT_ISSUER", "users"),
@@ -75,6 +77,19 @@ func Load() (Config, error) {
 		},
 	}
 
+	switch cfg.Profile {
+	case "local", "test", "staging", "production":
+	default:
+		return Config{}, fmt.Errorf("invalid USERS_PROFILE")
+	}
+	if cfg.Profile != "local" {
+		if cfg.Bootstrap.SuperuserEmail != "" || cfg.Bootstrap.SuperuserPassword != "" {
+			return Config{}, fmt.Errorf("bootstrap credentials require local profile")
+		}
+		if cfg.JWT.Secret == "local-development-secret-change-me" {
+			return Config{}, fmt.Errorf("development JWT secret requires local profile")
+		}
+	}
 	// Лимиты не должны незаметно отключаться из-за ошибки конфигурации.
 	for _, setting := range []struct {
 		name   string

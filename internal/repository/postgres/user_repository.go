@@ -15,16 +15,19 @@ import (
 const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at, deleted_at, security_version`
 
 // UserRepository хранит пользователей в PostgreSQL.
-type UserRepository struct{ pool *pgxpool.Pool }
+type UserRepository struct {
+	pool             *pgxpool.Pool
+	localCredentials bool
+}
 
 // NewUserRepository создаёт PostgreSQL repository поверх готового pgx pool.
 func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
-	return &UserRepository{pool: pool}
+	return &UserRepository{pool: pool, localCredentials: true}
 }
 
 // Create вставляет нового активного пользователя.
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
-	_, err := r.pool.Exec(ctx, `
+	_, err := r.securityExec(ctx, `
 		INSERT INTO users (id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), $9, $10, $11, $12, $13)`,
 		user.ID(), user.Email().String(), user.PasswordHash(), user.Username().String(), user.FirstName(), user.LastName(),
@@ -167,7 +170,7 @@ func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 
 // UpdatePassword сохраняет новый hash пароля (например, при ленивой миграции).
 func (r *UserRepository) UpdatePassword(ctx context.Context, user *domain.User) error {
-	result, err := r.pool.Exec(ctx, `
+	result, err := r.securityExec(ctx, `
 		UPDATE users SET password_hash=$2, updated_at=$3
 		WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.PasswordHash(), user.UpdatedAt())
 	if err != nil {
@@ -183,7 +186,7 @@ func (r *UserRepository) UpdatePassword(ctx context.Context, user *domain.User) 
 
 // UpdateRoles сохраняет роли пользователя и флаг суперпользователя.
 func (r *UserRepository) UpdateRoles(ctx context.Context, user *domain.User) error {
-	result, err := r.pool.Exec(ctx, `
+	result, err := r.securityExec(ctx, `
 		UPDATE users SET roles=$2, is_superuser=$3, updated_at=$4
 		WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.Roles(), user.IsSuperuser(), user.UpdatedAt())
 	if err != nil {
@@ -199,7 +202,7 @@ func (r *UserRepository) UpdateRoles(ctx context.Context, user *domain.User) err
 
 // SoftDelete сохраняет soft delete пользователя.
 func (r *UserRepository) SoftDelete(ctx context.Context, user *domain.User) error {
-	result, err := r.pool.Exec(ctx, `UPDATE users SET deleted_at=$2, updated_at=$3 WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.DeletedAt(), user.UpdatedAt())
+	result, err := r.securityExec(ctx, `UPDATE users SET deleted_at=$2, updated_at=$3 WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.DeletedAt(), user.UpdatedAt())
 	if err != nil {
 		return fmt.Errorf("soft delete user: %w", err)
 	}
@@ -278,6 +281,9 @@ func mapError(err error) error {
 	}
 
 	var postgresError *pgconn.PgError
+	if errors.As(err, &postgresError) && postgresError.ConstraintName == "users_last_admin" {
+		return domain.ErrPermissionDenied
+	}
 	if errors.As(err, &postgresError) && postgresError.Code == "23505" {
 		// Имя constraint используется для стабильного выбора бизнес-ошибки при конфликте уникальности.
 		switch postgresError.ConstraintName {
@@ -290,3 +296,7 @@ func mapError(err error) error {
 
 	return fmt.Errorf("postgres operation: %w", err)
 }
+
+// SetLocalCredentials ограничивает уже выданные demo/legacy сессии вне local.
+// Вызывается только при сборке до обработки запросов.
+func (r *UserRepository) SetLocalCredentials(allowed bool) { r.localCredentials = allowed }

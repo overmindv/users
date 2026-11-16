@@ -34,6 +34,7 @@ func Build(app *parker.App) error {
 	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.Lifetime)
 
 	repository := postgresrepo.NewUserRepository(pool)
+	repository.SetLocalCredentials(cfg.Profile == "local")
 	jwtManager.SetSessionStore(repository)
 	app.HTTP().Handle("POST /internal/session/check", jwtManager.SessionHTTP(false))
 	app.HTTP().Handle("POST /internal/session/revoke", jwtManager.SessionHTTP(true))
@@ -46,6 +47,7 @@ func Build(app *parker.App) error {
 		systemClock{},
 		mediaClient,
 	)
+	users.SetLocalCredentials(cfg.Profile == "local")
 	// Общие для всех реплик лимиты по email и доверенному IP.
 	throttle := postgresrepo.NewLoginThrottler(pool, cfg.JWT.Secret, cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.IPMaxAttempts, cfg.LoginThrottle.Window)
 	users.SetLoginThrottler(throttle)

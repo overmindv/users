@@ -12,7 +12,7 @@ type userIDKey struct{}
 
 // ContextWithUserID добавляет user ID в request context после проверки JWT.
 func ContextWithUserID(ctx context.Context, userID string) context.Context {
-	return context.WithValue(ctx, userIDKey{}, userID)
+	return context.WithValue(domain.WithAuditActor(ctx, userID), userIDKey{}, userID)
 }
 
 // UserIDFromContext возвращает user ID из context или ошибку авторизации.

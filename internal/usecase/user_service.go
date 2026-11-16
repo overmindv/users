@@ -12,13 +12,14 @@ import (
 
 // UserService реализует бизнес-сценарии пользователей, профиля, входа и ролей.
 type UserService struct {
-	repository UserRepository
-	passwords  PasswordHasher
-	tokens     TokenManager
-	ids        IDGenerator
-	clock      Clock
-	media      UserMediaStorage
-	throttler  LoginThrottler
+	repository       UserRepository
+	passwords        PasswordHasher
+	tokens           TokenManager
+	ids              IDGenerator
+	clock            Clock
+	media            UserMediaStorage
+	throttler        LoginThrottler
+	localCredentials bool
 }
 
 // NewUserServiceWithMedia собирает Users usecase с проверкой файлов через Media.
@@ -31,7 +32,7 @@ func NewUserServiceWithMedia(repository UserRepository, passwords PasswordHasher
 
 // NewUserService собирает user usecase из repository, password service, token manager, ID generator и clock.
 func NewUserService(repository UserRepository, passwords PasswordHasher, tokens TokenManager, ids IDGenerator, clock Clock) *UserService {
-	return &UserService{repository: repository, passwords: passwords, tokens: tokens, ids: ids, clock: clock}
+	return &UserService{repository: repository, passwords: passwords, tokens: tokens, ids: ids, clock: clock, localCredentials: true}
 }
 
 // SetLoginThrottler задаёт ограничитель попыток входа. nil допустим и отключает лимит.
@@ -174,6 +175,10 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 
+	if !s.localCredentials && (strings.HasPrefix(user.ID(), "00000000-0000-0000-0000-0000000000") || !strings.HasPrefix(user.PasswordHash(), "$argon2id$")) {
+		return nil, domain.ErrInvalidCredentials
+	}
+
 	if err := s.passwords.Compare(user.PasswordHash(), input.Password); err != nil {
 		return nil, domain.ErrInvalidCredentials
 	}
@@ -194,7 +199,7 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 		if upgrader, ok := s.repository.(interface {
 			UpgradePassword(context.Context, *domain.User, string) error
 		}); ok {
-			err = upgrader.UpgradePassword(ctx, user, previous)
+			err = upgrader.UpgradePassword(domain.WithAuditActor(ctx, user.ID()), user, previous)
 		} else {
 			err = s.repository.UpdatePassword(ctx, user)
 		}
@@ -362,7 +367,7 @@ func (s *UserService) SetAdmin(ctx context.Context, input SetAdminInput) (*domai
 		return nil, err
 	}
 
-	if err := s.repository.UpdateRoles(ctx, user); err != nil {
+	if err := s.repository.UpdateRoles(domain.WithAuditActor(ctx, input.ActorID), user); err != nil {
 		return nil, fmt.Errorf("update user roles: %w", err)
 	}
 
@@ -441,3 +446,6 @@ func (s *UserService) RequireAdmin(ctx context.Context, userID string) error {
 
 	return nil
 }
+
+// SetLocalCredentials разрешает demo/legacy credentials только локальному профилю.
+func (s *UserService) SetLocalCredentials(allowed bool) { s.localCredentials = allowed }

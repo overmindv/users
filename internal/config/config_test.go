@@ -24,3 +24,14 @@ func TestLoginThrottleConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestNonLocalBootstrapRejected(t *testing.T) {
+	t.Setenv("MEDIA_USERS_TOKEN", "test")
+	t.Setenv("USERS_PROFILE", "production")
+	t.Setenv("JWT_SECRET", "production-secret")
+	t.Setenv("BOOTSTRAP_SUPERUSER_EMAIL", "admin@example.com")
+	t.Setenv("BOOTSTRAP_SUPERUSER_PASSWORD", "unsafe-bootstrap")
+	if _, err := Load(); err == nil {
+		t.Fatal("production bootstrap accepted")
+	}
+}

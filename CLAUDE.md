@@ -87,3 +87,14 @@ JWT содержит jti и session_version. Проверка Users требуе
 Внутренние POST /internal/session/check и /internal/session/revoke принимают bearer:
 check возвращает только user_id/roles/session_id/expires_at; revoke идемпотентен.
 Недоступная БД возвращает 503, недействующая сессия — 401. Gateway подключается в OVM-101.
+
+## Аудит и profile (OVM-270)
+
+`USERS_PROFILE=local` (по умолчанию) сохраняет локальные demo/bootstrap сценарии.
+Для staging/production явно задайте соответствующий profile: bootstrap credentials,
+разработческий JWT secret, legacy plaintext и demo login/sessions запрещены.
+`user_security_audit` append-only: actor/subject UUID, allowlist изменений и время;
+триггеры запрещают UPDATE/DELETE/TRUNCATE, секреты не записываются. DB owner способен
+отключить triggers и должен быть недоступен приложению в production.
+Guard сериализует снятие административных прав и оставляет одного пригодного
+администратора (non-demo, Argon2id). Audit откатывается вместе с изменением.
