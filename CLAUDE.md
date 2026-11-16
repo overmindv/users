@@ -77,3 +77,13 @@ internal/
 - Проверки: `make -C ../infra agent-verify SERVICE=users DRY_RUN=1` показывает команды.
 - В конце приведи фактические результаты и непроверенные места; сохрани следующий шаг.
 - Не публикуй, не очищай БД и не отправляй изменения автоматически.
+
+## Управляемые сессии (OVM-265)
+
+JWT содержит jti и session_version. Проверка Users требует активную user_sessions,
+совпадающую security_version и действующий срок. Миграция должна идти до запуска
+нового сервиса; старые JWT без jti требуют повторного входа.
+Изменения password_hash, roles, is_superuser и deleted_at увеличивают версию атомарно.
+Внутренние POST /internal/session/check и /internal/session/revoke принимают bearer:
+check возвращает только user_id/roles/session_id/expires_at; revoke идемпотентен.
+Недоступная БД возвращает 503, недействующая сессия — 401. Gateway подключается в OVM-101.

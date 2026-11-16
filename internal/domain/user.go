@@ -7,20 +7,21 @@ import (
 
 // User представляет aggregate пользователя Users с профилем, ролями и soft delete состоянием.
 type User struct {
-	id           string
-	email        Email
-	passwordHash string
-	username     Username
-	firstName    string
-	lastName     string
-	birthDate    *time.Time
-	phone        Phone
-	avatarFileID *string
-	roles        []string
-	isSuperuser  bool
-	createdAt    time.Time
-	updatedAt    time.Time
-	deletedAt    *time.Time
+	id              string
+	securityVersion int64
+	email           Email
+	passwordHash    string
+	username        Username
+	firstName       string
+	lastName        string
+	birthDate       *time.Time
+	phone           Phone
+	avatarFileID    *string
+	roles           []string
+	isSuperuser     bool
+	createdAt       time.Time
+	updatedAt       time.Time
+	deletedAt       *time.Time
 }
 
 // RoleAdmin задаёт каноническое имя роли администратора.
@@ -44,6 +45,7 @@ type NewUserParams struct {
 
 // RestoreUserParams описывает данные восстановления пользователя из хранилища.
 type RestoreUserParams struct {
+	SecurityVersion int64
 	NewUserParams
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -95,19 +97,20 @@ func NewUser(params NewUserParams) (*User, error) {
 	now := params.Now.UTC()
 
 	return &User{
-		id:           params.ID,
-		email:        params.Email,
-		passwordHash: params.PasswordHash,
-		username:     params.Username,
-		firstName:    firstName,
-		lastName:     lastName,
-		birthDate:    cloneTime(params.BirthDate),
-		phone:        params.Phone,
-		avatarFileID: cloneString(params.AvatarFileID),
-		roles:        normalizeRoles(params.Roles, params.IsSuperuser),
-		isSuperuser:  params.IsSuperuser,
-		createdAt:    now,
-		updatedAt:    now,
+		id:              params.ID,
+		securityVersion: 1,
+		email:           params.Email,
+		passwordHash:    params.PasswordHash,
+		username:        params.Username,
+		firstName:       firstName,
+		lastName:        lastName,
+		birthDate:       cloneTime(params.BirthDate),
+		phone:           params.Phone,
+		avatarFileID:    cloneString(params.AvatarFileID),
+		roles:           normalizeRoles(params.Roles, params.IsSuperuser),
+		isSuperuser:     params.IsSuperuser,
+		createdAt:       now,
+		updatedAt:       now,
 	}, nil
 }
 
@@ -115,20 +118,21 @@ func NewUser(params NewUserParams) (*User, error) {
 // На вход получает все сохранённые поля, на выход возвращает доменную модель без повторной бизнес-валидации.
 func RestoreUser(params RestoreUserParams) *User {
 	return &User{
-		id:           params.ID,
-		email:        params.Email,
-		passwordHash: params.PasswordHash,
-		username:     params.Username,
-		firstName:    params.FirstName,
-		lastName:     params.LastName,
-		birthDate:    cloneTime(params.BirthDate),
-		phone:        params.Phone,
-		avatarFileID: cloneString(params.AvatarFileID),
-		roles:        normalizeRoles(params.Roles, params.IsSuperuser),
-		isSuperuser:  params.IsSuperuser,
-		createdAt:    params.CreatedAt,
-		updatedAt:    params.UpdatedAt,
-		deletedAt:    cloneTime(params.DeletedAt),
+		id:              params.ID,
+		securityVersion: params.SecurityVersion,
+		email:           params.Email,
+		passwordHash:    params.PasswordHash,
+		username:        params.Username,
+		firstName:       params.FirstName,
+		lastName:        params.LastName,
+		birthDate:       cloneTime(params.BirthDate),
+		phone:           params.Phone,
+		avatarFileID:    cloneString(params.AvatarFileID),
+		roles:           normalizeRoles(params.Roles, params.IsSuperuser),
+		isSuperuser:     params.IsSuperuser,
+		createdAt:       params.CreatedAt,
+		updatedAt:       params.UpdatedAt,
+		deletedAt:       cloneTime(params.DeletedAt),
 	}
 }
 
@@ -361,3 +365,9 @@ func (u *User) IsAdmin() bool {
 
 	return false
 }
+
+// SecurityVersion возвращает версию прочитанного снимка безопасности.
+func (u *User) SecurityVersion() int64 { return u.securityVersion }
+
+// SetSecurityVersion обновляет снимок после успешного CAS сохранения нового хеша.
+func (u *User) SetSecurityVersion(version int64) { u.securityVersion = version }

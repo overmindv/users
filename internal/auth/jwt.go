@@ -1,12 +1,11 @@
 package auth
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/overmindv/users/internal/domain"
 )
 
 // Manager выпускает и проверяет JWT для пользователей Users.
@@ -15,11 +14,13 @@ type Manager struct {
 	issuer   string
 	lifetime time.Duration
 	now      func() time.Time
+	sessions SessionStore
 }
 
 // Claims описывает JWT claims, которые нужны gateway для проверки ролей.
 type Claims struct {
-	Roles []string `json:"roles"`
+	Roles          []string `json:"roles"`
+	SessionVersion int64    `json:"session_version,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -56,19 +57,11 @@ func (m *Manager) Issue(userID string, roles []string) (string, time.Time, error
 
 // Parse проверяет JWT и возвращает user ID из subject.
 func (m *Manager) Parse(value string) (string, error) {
-	claims := &jwt.RegisteredClaims{}
-
-	token, err := jwt.ParseWithClaims(value, claims, func(token *jwt.Token) (any, error) {
-		if token.Method != jwt.SigningMethodHS256 {
-			return nil, errors.New("unexpected signing method")
-		}
-
-		// Проверяем алгоритм до возврата secret, чтобы не принять token с неподдерживаемой подписью.
-		return m.secret, nil
-	}, jwt.WithIssuer(m.issuer), jwt.WithExpirationRequired(), jwt.WithIssuedAt(), jwt.WithTimeFunc(m.now))
-	if err != nil || !token.Valid || claims.Subject == "" {
-		return "", domain.ErrUnauthorized
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	claims, err := m.Validate(ctx, value)
+	if err != nil {
+		return "", err
 	}
-
 	return claims.Subject, nil
 }

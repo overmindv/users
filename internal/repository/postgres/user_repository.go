@@ -12,7 +12,7 @@ import (
 	"github.com/overmindv/users/internal/domain"
 )
 
-const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at, deleted_at`
+const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at, deleted_at, security_version`
 
 // UserRepository хранит пользователей в PostgreSQL.
 type UserRepository struct{ pool *pgxpool.Pool }
@@ -221,9 +221,10 @@ func scanUser(row scanner) (*domain.User, error) {
 	var phoneValue, avatarFileID *string
 	var roles []string
 	var isSuperuser bool
+	var securityVersion int64
 	var createdAt, updatedAt time.Time
 
-	if err := row.Scan(&id, &emailValue, &passwordHash, &usernameValue, &firstName, &lastName, &birthDate, &phoneValue, &avatarFileID, &roles, &isSuperuser, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := row.Scan(&id, &emailValue, &passwordHash, &usernameValue, &firstName, &lastName, &birthDate, &phoneValue, &avatarFileID, &roles, &isSuperuser, &createdAt, &updatedAt, &deletedAt, &securityVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
 		}
@@ -250,6 +251,7 @@ func scanUser(row scanner) (*domain.User, error) {
 
 	// Повторно создаём value objects, чтобы повреждённые данные в БД не попали выше repository слоя.
 	return domain.RestoreUser(domain.RestoreUserParams{
+		SecurityVersion: securityVersion,
 		NewUserParams: domain.NewUserParams{
 			ID:           id,
 			Email:        email,

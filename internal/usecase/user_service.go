@@ -142,7 +142,7 @@ func (s *UserService) Register(ctx context.Context, input RegisterInput) (*AuthR
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
-	return s.authResult(user)
+	return s.authResult(ctx, user)
 }
 
 // Login проверяет email и пароль существующего пользователя и возвращает JWT.
@@ -189,13 +189,21 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 		if err != nil {
 			return nil, fmt.Errorf("rehash password: %w", err)
 		}
+		previous := user.PasswordHash()
 		user.SetPassword(hash, s.clock.Now())
-		if err := s.repository.UpdatePassword(ctx, user); err != nil {
+		if upgrader, ok := s.repository.(interface {
+			UpgradePassword(context.Context, *domain.User, string) error
+		}); ok {
+			err = upgrader.UpgradePassword(ctx, user, previous)
+		} else {
+			err = s.repository.UpdatePassword(ctx, user)
+		}
+		if err != nil {
 			return nil, fmt.Errorf("upgrade password hash: %w", err)
 		}
 	}
 
-	return s.authResult(user)
+	return s.authResult(ctx, user)
 }
 
 // Get возвращает активного пользователя по ID.
@@ -399,8 +407,17 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 }
 
 // authResult выпускает JWT и собирает результат успешной регистрации или входа.
-func (s *UserService) authResult(user *domain.User) (*AuthResult, error) {
-	token, expiresAt, err := s.tokens.Issue(user.ID(), user.Roles())
+func (s *UserService) authResult(ctx context.Context, user *domain.User) (*AuthResult, error) {
+	var token string
+	var expiresAt time.Time
+	var err error
+	if issuer, ok := s.tokens.(interface {
+		IssueUser(context.Context, *domain.User) (string, time.Time, error)
+	}); ok {
+		token, expiresAt, err = issuer.IssueUser(ctx, user)
+	} else {
+		token, expiresAt, err = s.tokens.Issue(user.ID(), user.Roles())
+	}
 	if err != nil {
 		return nil, fmt.Errorf("issue token: %w", err)
 	}

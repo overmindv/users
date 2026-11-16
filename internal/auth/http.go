@@ -20,12 +20,12 @@ func OptionalHTTP(manager *Manager, next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := manager.Parse(token)
+		claims, err := manager.Validate(r.Context(), token)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(ContextWithUserID(r.Context(), userID)))
+		next.ServeHTTP(w, r.WithContext(ContextWithUserID(r.Context(), claims.Subject)))
 	})
 }

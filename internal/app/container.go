@@ -34,6 +34,9 @@ func Build(app *parker.App) error {
 	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.Lifetime)
 
 	repository := postgresrepo.NewUserRepository(pool)
+	jwtManager.SetSessionStore(repository)
+	app.HTTP().Handle("POST /internal/session/check", jwtManager.SessionHTTP(false))
+	app.HTTP().Handle("POST /internal/session/revoke", jwtManager.SessionHTTP(true))
 	mediaClient := usersmedia.New(cfg.Media)
 	users := usecase.NewUserServiceWithMedia(
 		repository,
