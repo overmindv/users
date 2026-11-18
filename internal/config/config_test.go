@@ -25,6 +25,22 @@ func TestLoginThrottleConfig(t *testing.T) {
 	}
 }
 
+func TestReviewGrantConfig(t *testing.T) {
+	t.Setenv("MEDIA_USERS_TOKEN", "media-test")
+	t.Setenv("JWT_SECRET", "jwt-fixture-with-sufficient-length")
+	t.Setenv("USERS_ENTITIES_URL", "http://entities:8080")
+	for _, invalid := range []string{"", "short", "jwt-fixture-with-sufficient-length"} {
+		t.Setenv("USERS_REVIEW_GRANTS_TOKEN", invalid)
+		if _, err := Load(); err == nil {
+			t.Error("invalid review grant token accepted")
+		}
+	}
+	t.Setenv("USERS_REVIEW_GRANTS_TOKEN", "read-fixture-with-sufficient-length")
+	if cfg, err := Load(); err != nil || cfg.ReviewGrants.EntitiesURL != "http://entities:8080" {
+		t.Errorf("review grant config: %v", err)
+	}
+}
+
 func TestNonLocalBootstrapRejected(t *testing.T) {
 	t.Setenv("MEDIA_USERS_TOKEN", "test")
 	t.Setenv("USERS_PROFILE", "production")

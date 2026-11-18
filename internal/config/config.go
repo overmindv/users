@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,12 @@ type Config struct {
 	Media         Media
 	Bootstrap     Bootstrap
 	LoginThrottle LoginThrottle
+	ReviewGrants  ReviewGrants
+}
+
+type ReviewGrants struct {
+	EntitiesURL string
+	ReadToken   string
 }
 
 // JWT описывает настройки выпуска access token.
@@ -51,7 +58,8 @@ type LoginThrottle struct {
 // Load читает бизнес-конфигурацию Users из environment и валидирует обязательные значения.
 func Load() (Config, error) {
 	cfg := Config{
-		Profile: env("USERS_PROFILE", "local"),
+		Profile:      env("USERS_PROFILE", "local"),
+		ReviewGrants: ReviewGrants{EntitiesURL: os.Getenv("USERS_ENTITIES_URL"), ReadToken: os.Getenv("USERS_REVIEW_GRANTS_TOKEN")},
 		JWT: JWT{
 			Secret:   env("JWT_SECRET", "local-development-secret-change-me"),
 			Issuer:   env("JWT_ISSUER", "users"),
@@ -123,6 +131,14 @@ func Load() (Config, error) {
 	}
 	if cfg.Media.URL == "" || cfg.Media.Token == "" {
 		return Config{}, fmt.Errorf("MEDIA_URL и MEDIA_USERS_TOKEN обязательны")
+	}
+	review := cfg.ReviewGrants
+	if review.ReadToken != "" || review.EntitiesURL != "" {
+		if review.EntitiesURL == "" || len(review.ReadToken) < 32 || len(review.ReadToken) > 256 ||
+			strings.IndexFunc(review.ReadToken, func(r rune) bool { return r <= 32 || r >= 127 }) >= 0 ||
+			review.ReadToken == cfg.JWT.Secret || review.ReadToken == cfg.Media.Token {
+			return Config{}, fmt.Errorf("review grants require USERS_ENTITIES_URL and a separate USERS_REVIEW_GRANTS_TOKEN")
+		}
 	}
 
 	return cfg, nil

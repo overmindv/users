@@ -10,9 +10,11 @@ import (
 	"github.com/overmindv/users/internal/auth"
 	"github.com/overmindv/users/internal/config"
 	graphqldelivery "github.com/overmindv/users/internal/delivery/graphql"
+	"github.com/overmindv/users/internal/delivery/reviewgrants"
 	usersmedia "github.com/overmindv/users/internal/media"
 	postgresrepo "github.com/overmindv/users/internal/repository/postgres"
 	"github.com/overmindv/users/internal/security"
+	"github.com/overmindv/users/internal/topics"
 	"github.com/overmindv/users/internal/usecase"
 	"github.com/overmindv/users/internal/worker"
 )
@@ -38,6 +40,13 @@ func Build(app *parker.App) error {
 	jwtManager.SetSessionStore(repository)
 	app.HTTP().Handle("POST /internal/session/check", jwtManager.SessionHTTP(false))
 	app.HTTP().Handle("POST /internal/session/revoke", jwtManager.SessionHTTP(true))
+	if cfg.ReviewGrants.ReadToken != "" {
+		catalog, err := topics.New(cfg.ReviewGrants.EntitiesURL)
+		if err != nil {
+			return err
+		}
+		reviewgrants.Register(app.HTTP(), usecase.NewReviewGrants(repository, catalog), jwtManager, cfg.ReviewGrants.ReadToken)
+	}
 	mediaClient := usersmedia.New(cfg.Media)
 	users := usecase.NewUserServiceWithMedia(
 		repository,
