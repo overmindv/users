@@ -173,6 +173,8 @@ func TestNewUserRequiresAggregateIdentity(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			if _, err := NewUser(test.params); !errors.Is(err, test.want) {
 				t.Fatalf("expected %v, got %v", test.want, err)
 			}

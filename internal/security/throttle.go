@@ -60,5 +60,6 @@ func (t *MemoryLoginThrottler) Check(_ context.Context, email, _ string) (bool, 
 // ResetEmail реализует контракт тестового in-memory ограничителя.
 func (t *MemoryLoginThrottler) ResetEmail(_ context.Context, email string) error {
 	t.Reset(email)
+
 	return nil
 }

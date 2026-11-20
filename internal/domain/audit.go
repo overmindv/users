@@ -10,4 +10,8 @@ func WithAuditActor(ctx context.Context, id string) context.Context {
 }
 
 // AuditActor возвращает actor; пустое значение обозначает системную операцию.
-func AuditActor(ctx context.Context) string { id, _ := ctx.Value(auditActorKey{}).(string); return id }
+func AuditActor(ctx context.Context) string {
+	id, _ := ctx.Value(auditActorKey{}).(string)
+
+	return id
+}

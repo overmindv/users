@@ -69,8 +69,11 @@ func (h Argon2IDHasher) Compare(stored, password string) error {
 		// Некорректные сохранённые данные не должны раскрывать причину отказа.
 		return errors.New("password mismatch")
 	}
+	if uint64(len(key)) > uint64(^uint32(0)) {
+		return errors.New("password mismatch")
+	}
 
-	candidate := argon2.IDKey([]byte(password), salt, params.time, params.memory, uint8(params.threads), uint32(len(key)))
+	candidate := argon2.IDKey([]byte(password), salt, params.time, params.memory, params.threads, uint32(len(key))) //nolint:gosec // длина проверена перед преобразованием
 	if subtle.ConstantTimeCompare(candidate, key) != 1 {
 		return errors.New("password mismatch")
 	}
@@ -83,7 +86,10 @@ func (Argon2IDHasher) RequiresUpgrade(stored string) bool {
 	return !strings.HasPrefix(stored, argon2idPrefix)
 }
 
-type argon2Params struct{ memory, time, threads uint32 }
+type argon2Params struct {
+	memory, time uint32
+	threads      uint8
+}
 
 // decodeArgon2ID разбирает сохранённое значение на параметры, salt и ключ.
 func decodeArgon2ID(encoded string) (argon2Params, []byte, []byte, error) {
@@ -109,7 +115,10 @@ func decodeArgon2ID(encoded string) (argon2Params, []byte, []byte, error) {
 		case "t":
 			params.time = uint32(value)
 		case "p":
-			params.threads = uint32(value)
+			if value > 255 {
+				return argon2Params{}, nil, nil, errors.New("argon2id thread count is out of range")
+			}
+			params.threads = uint8(value) //nolint:gosec // диапазон проверен непосредственно перед преобразованием
 		}
 	}
 
