@@ -162,8 +162,10 @@ func (r *fakeRepository) SoftDelete(_ context.Context, user *domain.User) error 
 // fakeIDs всегда возвращает один ID для коротких unit-сценариев.
 type fakeIDs struct{}
 
+const fakeUserID = "user-id"
+
 // New возвращает фиксированный test user ID.
-func (fakeIDs) New() string { return "user-id" }
+func (fakeIDs) New() string { return fakeUserID }
 
 // sequenceIDs возвращает ID по очереди для сценариев с несколькими пользователями.
 type sequenceIDs struct {
@@ -496,12 +498,12 @@ func TestAdminCanPromoteRegularUser(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := service.SetAdmin(ctx, SetAdminInput{
+	if _, permissionErr := service.SetAdmin(ctx, SetAdminInput{
 		ActorID: student.User.ID(),
 		UserID:  "admin-id",
 		Admin:   false,
-	}); !errors.Is(err, domain.ErrPermissionDenied) {
-		t.Fatalf("expected regular user to be denied, got %v", err)
+	}); !errors.Is(permissionErr, domain.ErrPermissionDenied) {
+		t.Fatalf("expected regular user to be denied, got %v", permissionErr)
 	}
 
 	promoted, err := service.SetAdminByUsername(ctx, SetAdminByUsernameInput{

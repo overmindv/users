@@ -158,9 +158,9 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 
 	key := email.String()
 	if s.throttler != nil {
-		allowed, err := s.throttler.Check(ctx, key, input.ClientIP)
-		if err != nil {
-			return nil, fmt.Errorf("check login throttle: %w", err)
+		allowed, throttleErr := s.throttler.Check(ctx, key, input.ClientIP)
+		if throttleErr != nil {
+			return nil, fmt.Errorf("check login throttle: %w", throttleErr)
 		}
 		if !allowed {
 			return nil, domain.ErrTooManyRequests
@@ -172,6 +172,7 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return nil, domain.ErrInvalidCredentials
 		}
+
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 

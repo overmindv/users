@@ -14,6 +14,8 @@ import (
 // TestLoginLazyMigratesLegacyPasswordHash проверяет, что устаревший (открытый) hash пароля
 // при успешном входе пере-хэшируется Argon2id и сохраняется.
 func TestLoginLazyMigratesLegacyPasswordHash(t *testing.T) {
+	t.Parallel()
+
 	repository := newFakeRepository()
 	registerClock := fakeClock{time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}
 
@@ -59,6 +61,8 @@ func TestLoginLazyMigratesLegacyPasswordHash(t *testing.T) {
 // TestLoginLegacyWrongPasswordNotMigrated проверяет, что при неверном пароле
 // устаревший hash не перезаписывается.
 func TestLoginLegacyWrongPasswordNotMigrated(t *testing.T) {
+	t.Parallel()
+
 	repository := newFakeRepository()
 	email, _ := domain.NewEmail("migrate@example.com")
 	username, _ := domain.NewUsername("migrate_user")
@@ -85,6 +89,8 @@ func TestLoginLegacyWrongPasswordNotMigrated(t *testing.T) {
 
 // TestLoginEnforcesRateLimit проверяет, что после исчерпания попыток вход блокируется.
 func TestLoginEnforcesRateLimit(t *testing.T) {
+	t.Parallel()
+
 	repository := newFakeRepository()
 	now := time.Date(2026, 9, 11, 12, 0, 0, 0, time.UTC)
 
@@ -108,6 +114,8 @@ func TestLoginEnforcesRateLimit(t *testing.T) {
 
 // TestLoginResetsCounterOnSuccess проверяет, что успешный вход сбрасывает счётчик попыток.
 func TestLoginResetsCounterOnSuccess(t *testing.T) {
+	t.Parallel()
+
 	repository := newFakeRepository()
 	now := time.Date(2026, 9, 11, 12, 0, 0, 0, time.UTC)
 
@@ -144,11 +152,14 @@ type loginThrottleStub struct {
 
 func (s *loginThrottleStub) Check(_ context.Context, email, ip string) (bool, error) {
 	s.email, s.ip = email, ip
+
 	return s.allowed, s.checkErr
 }
 func (s *loginThrottleStub) ResetEmail(context.Context, string) error { return s.resetErr }
 
 func TestLoginThrottleFailsClosedAndUsesNormalizedIdentity(t *testing.T) {
+	t.Parallel()
+
 	repo := newFakeRepository()
 	service := NewUserService(repo, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Now()})
 	if _, err := service.Register(context.Background(), RegisterInput{Email: "user@example.com", Password: "password", Username: "user"}); err != nil {
@@ -171,6 +182,8 @@ func TestLoginThrottleFailsClosedAndUsesNormalizedIdentity(t *testing.T) {
 }
 
 func TestUnknownAccountHasSameLoginErrorsAndLimit(t *testing.T) {
+	t.Parallel()
+
 	repo := newFakeRepository()
 	service := NewUserService(repo, security.PlainTextHasher{}, fakeTokens{}, fakeIDs{}, fakeClock{time.Now()})
 	if _, err := service.Register(context.Background(), RegisterInput{Email: "known@example.com", Password: "password", Username: "user"}); err != nil {
@@ -192,8 +205,12 @@ func TestUnknownAccountHasSameLoginErrorsAndLimit(t *testing.T) {
 }
 
 func TestNonLocalRejectsDemoAndLegacyCredentials(t *testing.T) {
+	t.Parallel()
+
 	for _, id := range []string{"00000000-0000-0000-0000-000000000001", "regular-user"} {
 		t.Run(id, func(t *testing.T) {
+			t.Parallel()
+
 			repo := newFakeRepository()
 			email, _ := domain.NewEmail("demo@example.com")
 			username, _ := domain.NewUsername("demo_user")
