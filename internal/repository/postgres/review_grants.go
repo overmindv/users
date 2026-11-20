@@ -24,6 +24,7 @@ func (r *UserRepository) ChangeReviewGrant(ctx context.Context, input domain.Rev
 			if errors.Is(err, pgx.ErrNoRows) {
 				return domain.ErrPermissionDenied
 			}
+
 			return err
 		}
 		if input.Grant {
@@ -32,12 +33,15 @@ func (r *UserRepository) ChangeReviewGrant(ctx context.Context, input domain.Rev
 				if errors.Is(err, pgx.ErrNoRows) {
 					return domain.ErrUserNotFound
 				}
+
 				return err
 			}
 			_, err := tx.Exec(ctx, grantTopicReview, input.TopicID, input.UserID, input.ActorID, input.Reason)
+
 			return err
 		}
 		_, err := tx.Exec(ctx, revokeTopicReview, input.TopicID, input.UserID, input.ActorID, input.Reason)
+
 		return err
 	})
 }
@@ -73,6 +77,7 @@ func (r *UserRepository) ListReviewGrants(ctx context.Context, topicID, after uu
 	if err != nil {
 		return nil, err
 	}
+
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }
 
@@ -85,5 +90,6 @@ func (r *UserRepository) CheckReviewGrants(ctx context.Context, topicID uuid.UUI
 	if err != nil {
 		return nil, err
 	}
+
 	return pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
 }

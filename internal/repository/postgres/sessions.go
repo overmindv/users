@@ -31,6 +31,7 @@ func (r *UserRepository) CreateSession(ctx context.Context, user *domain.User, i
 	if err = tx.Commit(ctx); err != nil {
 		return 0, err
 	}
+
 	return version, nil
 }
 
@@ -41,12 +42,14 @@ func (r *UserRepository) CheckSession(ctx context.Context, userID, id string, ve
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrUnauthorized
 	}
+
 	return roles, err
 }
 
 // RevokeSession сохраняет отзыв; повторный logout безопасен.
 func (r *UserRepository) RevokeSession(ctx context.Context, userID, id string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE user_sessions SET revoked_at=COALESCE(revoked_at,clock_timestamp()) WHERE id=$1 AND user_id=$2`, id, userID)
+
 	return err
 }
 
@@ -70,5 +73,6 @@ func (r *UserRepository) UpgradePassword(ctx context.Context, user *domain.User,
 		return err
 	}
 	user.SetSecurityVersion(version)
+
 	return nil
 }

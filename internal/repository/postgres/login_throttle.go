@@ -29,6 +29,7 @@ func NewLoginThrottler(pool *pgxpool.Pool, secret string, emailLimit, ipLimit in
 func (t *LoginThrottler) digest(scope, value string) string {
 	mac := hmac.New(sha256.New, t.secret)
 	_, _ = mac.Write([]byte("login-throttle-v1\n" + scope + "\n" + value))
+
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
@@ -74,6 +75,7 @@ func (t *LoginThrottler) Check(ctx context.Context, email, ip string) (bool, err
 	if err := tx.Commit(ctx); err != nil {
 		return false, fmt.Errorf("commit login throttle: %w", err)
 	}
+
 	return allowed, nil
 }
 
@@ -84,6 +86,7 @@ func (t *LoginThrottler) ResetEmail(ctx context.Context, email string) error {
 	if err != nil {
 		return fmt.Errorf("reset login throttle: %w", err)
 	}
+
 	return nil
 }
 
@@ -96,5 +99,6 @@ func (t *LoginThrottler) Cleanup(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cleanup login throttle: %w", err)
 	}
+
 	return nil
 }
