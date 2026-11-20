@@ -36,6 +36,7 @@ func (m *Manager) IssueUser(ctx context.Context, user *domain.User) (string, tim
 	}
 	claims := Claims{Roles: user.Roles(), SessionVersion: version, RegisteredClaims: jwt.RegisteredClaims{ID: id, Subject: user.ID(), Issuer: m.issuer, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(expires)}}
 	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(m.secret)
+
 	return token, expires, err
 }
 
@@ -45,6 +46,7 @@ func (m *Manager) parseClaims(value string) (*Claims, error) {
 	if err != nil || token == nil || !token.Valid || claims.Subject == "" {
 		return nil, domain.ErrUnauthorized
 	}
+
 	return claims, nil
 }
 
@@ -63,6 +65,7 @@ func (m *Manager) Validate(ctx context.Context, value string) (*Claims, error) {
 			return nil, err
 		}
 	}
+
 	return claims, nil
 }
 
@@ -78,6 +81,7 @@ func (m *Manager) Revoke(ctx context.Context, value string) error {
 	if _, err = uuid.Parse(claims.ID); err != nil {
 		return domain.ErrUnauthorized
 	}
+
 	return m.sessions.RevokeSession(ctx, claims.Subject, claims.ID)
 }
 
@@ -88,6 +92,7 @@ func (m *Manager) SessionHTTP(revoke bool) http.Handler {
 		token, err := BearerToken(r.Header.Get("Authorization"))
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+
 			return
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -95,14 +100,17 @@ func (m *Manager) SessionHTTP(revoke bool) http.Handler {
 		if revoke {
 			if err = m.Revoke(ctx, token); err != nil {
 				sessionError(w, err)
+
 				return
 			}
 			w.WriteHeader(http.StatusNoContent)
+
 			return
 		}
 		claims, err := m.Validate(ctx, token)
 		if err != nil {
 			sessionError(w, err)
+
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

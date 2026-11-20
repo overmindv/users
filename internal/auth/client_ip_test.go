@@ -12,6 +12,8 @@ import (
 )
 
 func TestLoginClientIP(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		name, secret, signatureSecret, ip string
 		age                               int64
@@ -26,6 +28,8 @@ func TestLoginClientIP(t *testing.T) {
 		{"canonical ipv4", "shared-secret", "shared-secret", "::ffff:198.51.100.9", 0, "198.51.100.9"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			req := httptest.NewRequest(http.MethodPost, "/graphql", nil)
 			req.RemoteAddr = "192.0.2.1:1234"
 			timestamp := strconv.FormatInt(time.Now().Unix()+tc.age, 10)
