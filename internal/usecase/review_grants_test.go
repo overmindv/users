@@ -17,6 +17,7 @@ type reviewGrantStub struct {
 
 func (s *reviewGrantStub) ChangeReviewGrant(_ context.Context, change domain.ReviewGrantChange) error {
 	s.change = change
+
 	return s.err
 }
 
@@ -33,6 +34,8 @@ type reviewTopicStub struct{ err error }
 func (s *reviewTopicStub) CheckActiveTopic(context.Context, uuid.UUID) error { return s.err }
 
 func TestReviewGrantChange(t *testing.T) {
+	t.Parallel()
+
 	store := &reviewGrantStub{}
 	topic := &reviewTopicStub{err: domain.ErrInactiveReviewTopic}
 	grants := NewReviewGrants(store, topic)
@@ -54,7 +57,7 @@ func TestReviewGrantChange(t *testing.T) {
 		}
 	}
 	revoke := valid
-	revoke.Grant, revoke.Reason = false, "assignment_ended"
+	revoke.Grant, revoke.Reason = false, reviewReasonAssignmentEnded
 	if err := grants.Change(t.Context(), revoke); err != nil || store.change != revoke {
 		t.Errorf("revoke when topic is inactive: %v", err)
 	}
@@ -65,6 +68,8 @@ func TestReviewGrantChange(t *testing.T) {
 }
 
 func TestReviewGrantReads(t *testing.T) {
+	t.Parallel()
+
 	store := &reviewGrantStub{ids: []uuid.UUID{uuid.New(), uuid.New()}}
 	grants := NewReviewGrants(store, &reviewTopicStub{})
 	topic := uuid.New()

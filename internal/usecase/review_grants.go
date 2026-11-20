@@ -7,6 +7,8 @@ import (
 	"github.com/overmindv/users/internal/domain"
 )
 
+const reviewReasonAssignmentEnded = "assignment_ended"
+
 type ReviewGrantStore interface {
 	ChangeReviewGrant(context.Context, domain.ReviewGrantChange) error
 	ListReviewGrants(ctx context.Context, topicID, after uuid.UUID, limit int) ([]uuid.UUID, error)
@@ -41,6 +43,7 @@ func (s *ReviewGrants) Change(ctx context.Context, change domain.ReviewGrantChan
 			return err
 		}
 	}
+
 	return s.store.ChangeReviewGrant(ctx, change)
 }
 
@@ -48,7 +51,8 @@ func validReviewReason(change domain.ReviewGrantChange) bool {
 	if change.Grant {
 		return change.Reason == "qualification_verified" || change.Reason == "editorial_assignment"
 	}
-	return change.Reason == "assignment_ended" || change.Reason == "access_review"
+
+	return change.Reason == reviewReasonAssignmentEnded || change.Reason == "access_review"
 }
 
 func (s *ReviewGrants) List(ctx context.Context, topicID, after uuid.UUID, limit int) (domain.ReviewGrantPage, error) {
@@ -64,6 +68,7 @@ func (s *ReviewGrants) List(ctx context.Context, topicID, after uuid.UUID, limit
 		page.UserIDs = ids[:limit]
 		page.NextAfter = ids[limit-1].String()
 	}
+
 	return page, nil
 }
 
@@ -76,5 +81,6 @@ func (s *ReviewGrants) Check(ctx context.Context, topicID uuid.UUID, ids []uuid.
 			return nil, domain.ErrInvalidReviewGrant
 		}
 	}
+
 	return s.store.CheckReviewGrants(ctx, topicID, ids)
 }

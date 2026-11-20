@@ -170,6 +170,8 @@ type graphQLResponse struct {
 
 // TestGraphQLAuthFlow проверяет регистрацию, вход, update и admin promotion через GraphQL handler Users.
 func TestGraphQLAuthFlow(t *testing.T) {
+	t.Parallel()
+
 	repository := newGraphQLUserRepository()
 	jwt := auth.NewManager("test-secret", "users", time.Hour)
 	users := usecase.NewUserService(
@@ -422,11 +424,14 @@ type capturingLoginThrottle struct{ email, ip string }
 
 func (c *capturingLoginThrottle) Check(_ context.Context, email, ip string) (bool, error) {
 	c.email, c.ip = email, ip
+
 	return false, nil
 }
 func (*capturingLoginThrottle) ResetEmail(context.Context, string) error { return nil }
 
 func TestLoginResolverUsesTrustedTransportIP(t *testing.T) {
+	t.Parallel()
+
 	users := usecase.NewUserService(newGraphQLUserRepository(), security.PlainTextHasher{}, auth.NewManager("test", "users", time.Hour), &graphQLIDs{}, graphQLClock{})
 	throttle := &capturingLoginThrottle{}
 	users.SetLoginThrottler(throttle)
