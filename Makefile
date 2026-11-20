@@ -27,7 +27,8 @@ integration:
 # Запуск компонентных тестов (требуют PostgreSQL)
 ctest:
 	go run ./cmd/users migrate --dir migrations --dsn "$(COMPONENT_TEST_DSN)" up
-	COMPONENT_TEST_DSN="$(COMPONENT_TEST_DSN)" go test -tags=component ./tests/integration/...
+	COMPONENT_TEST_DSN="$(COMPONENT_TEST_DSN)" go test -tags=component -run '^TestMigrationsSkipDemoUsers$$' ./tests/integration/...
+	COMPONENT_TEST_DSN="$(COMPONENT_TEST_DSN)" go test -tags=component -skip '^TestMigrationsSkipDemoUsers$$' ./tests/integration/...
 
 # Проверка линтером
 lint: $(GOLANGCI_LINT)
