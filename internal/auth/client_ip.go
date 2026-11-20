@@ -17,6 +17,7 @@ type clientIPKey struct{}
 // ClientIP возвращает IP, проверенный HTTP-границей, а не значение из GraphQL input.
 func ClientIP(ctx context.Context) string {
 	ip, _ := ctx.Value(clientIPKey{}).(string)
+
 	return ip
 }
 

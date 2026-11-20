@@ -15,8 +15,10 @@ func (r *UserRepository) securityTx(ctx context.Context) (pgx.Tx, error) {
 	}
 	if _, err = tx.Exec(ctx, `SELECT set_config('app.actor_id',$1,true)`, domain.AuditActor(ctx)); err != nil {
 		_ = tx.Rollback(ctx)
+
 		return nil, err
 	}
+
 	return tx, nil
 }
 
@@ -30,5 +32,6 @@ func (r *UserRepository) securityExec(ctx context.Context, sql string, args ...a
 	if err != nil {
 		return tag, mapError(err)
 	}
+
 	return tag, tx.Commit(ctx)
 }

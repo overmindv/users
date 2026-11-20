@@ -10,6 +10,8 @@ import (
 
 // TestManagerIssueAndParse проверяет выпуск JWT, чтение subject и истечение token.
 func TestManagerIssueAndParse(t *testing.T) {
+	t.Parallel()
+
 	manager := NewManager("secret", "users", 24*time.Hour)
 	manager.now = func() time.Time {
 		return time.Unix(1000, 0)
@@ -36,6 +38,8 @@ func TestManagerIssueAndParse(t *testing.T) {
 
 // TestBearerToken проверяет извлечение token из Authorization header.
 func TestBearerToken(t *testing.T) {
+	t.Parallel()
+
 	if token, err := BearerToken("Bearer abc"); err != nil || token != "abc" {
 		t.Fatalf("BearerToken() = %q, %v", token, err)
 	}

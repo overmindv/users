@@ -19,6 +19,8 @@ import (
 	"github.com/overmindv/users/internal/worker"
 )
 
+const localProfile = "local"
+
 // Build выполняет wiring бизнес-зависимостей Users на каркас parker:
 // открывает базу, настраивает JWT/media, регистрирует GraphQL-роуты, health-чекки
 // и фоновый воркер доставки avatar outbox.
@@ -36,7 +38,7 @@ func Build(app *parker.App) error {
 	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.Lifetime)
 
 	repository := postgresrepo.NewUserRepository(pool)
-	repository.SetLocalCredentials(cfg.Profile == "local")
+	repository.SetLocalCredentials(cfg.Profile == localProfile)
 	jwtManager.SetSessionStore(repository)
 	app.HTTP().Handle("POST /internal/session/check", jwtManager.SessionHTTP(false))
 	app.HTTP().Handle("POST /internal/session/revoke", jwtManager.SessionHTTP(true))
@@ -56,7 +58,7 @@ func Build(app *parker.App) error {
 		systemClock{},
 		mediaClient,
 	)
-	users.SetLocalCredentials(cfg.Profile == "local")
+	users.SetLocalCredentials(cfg.Profile == localProfile)
 	// Общие для всех реплик лимиты по email и доверенному IP.
 	throttle := postgresrepo.NewLoginThrottler(pool, cfg.JWT.Secret, cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.IPMaxAttempts, cfg.LoginThrottle.Window)
 	users.SetLoginThrottler(throttle)
@@ -90,6 +92,7 @@ func Build(app *parker.App) error {
 		},
 		app.Logger(),
 	)
+
 	return nil
 }
 

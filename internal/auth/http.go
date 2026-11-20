@@ -11,18 +11,21 @@ func OptionalHTTP(manager *Manager, next http.Handler) http.Handler {
 		header := r.Header.Get("Authorization")
 		if header == "" {
 			next.ServeHTTP(w, r)
+
 			return
 		}
 
 		token, err := BearerToken(header)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+
 			return
 		}
 
 		claims, err := manager.Validate(r.Context(), token)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
+
 			return
 		}
 

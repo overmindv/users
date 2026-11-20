@@ -24,6 +24,7 @@ func New(address string) (*Client, error) {
 		base.User != nil || base.RawQuery != "" || base.ForceQuery || base.Fragment != "" {
 		return nil, errors.New("USERS_ENTITIES_URL must be an absolute HTTP(S) URL without credentials, query or fragment")
 	}
+
 	return &Client{base: base, http: &http.Client{
 		Timeout:       1500 * time.Millisecond,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
@@ -61,5 +62,6 @@ func (c *Client) CheckActiveTopic(ctx context.Context, topicID uuid.UUID) error 
 	if topic.Status != "active" {
 		return domain.ErrInactiveReviewTopic
 	}
+
 	return nil
 }

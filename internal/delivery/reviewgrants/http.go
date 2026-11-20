@@ -40,6 +40,7 @@ func (h handler) internal(next http.HandlerFunc) http.Handler {
 		presented := sha256.Sum256([]byte(token))
 		if !h.readEnabled || err != nil || subtle.ConstantTimeCompare(h.readDigest[:], presented[:]) != 1 {
 			writeError(w, domain.ErrUnauthorized)
+
 			return
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
@@ -55,27 +56,32 @@ func (h handler) change(w http.ResponseWriter, r *http.Request) {
 	token, err := requestToken(r)
 	if err != nil {
 		writeError(w, err)
+
 		return
 	}
 	claims, err := h.sessions.Validate(ctx, token)
 	if err != nil {
 		writeError(w, err)
+
 		return
 	}
 	if !slices.Contains(claims.Roles, domain.RoleAdmin) && !slices.Contains(claims.Roles, "superuser") {
 		writeError(w, domain.ErrPermissionDenied)
+
 		return
 	}
 	actor, actorErr := uuid.Parse(claims.Subject)
 	session, sessionErr := uuid.Parse(claims.ID)
 	if actorErr != nil || sessionErr != nil {
 		writeError(w, domain.ErrUnauthorized)
+
 		return
 	}
 	topic, topicErr := uuid.Parse(r.PathValue("topic_id"))
 	user, userErr := uuid.Parse(r.PathValue("user_id"))
 	if topicErr != nil || userErr != nil {
 		writeError(w, domain.ErrInvalidReviewGrant)
+
 		return
 	}
 	var body struct {
@@ -90,6 +96,7 @@ func (h handler) change(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		writeError(w, err)
+
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -99,6 +106,7 @@ func (h handler) list(w http.ResponseWriter, r *http.Request) {
 	topic, err := uuid.Parse(r.PathValue("topic_id"))
 	if err != nil {
 		writeError(w, domain.ErrInvalidReviewGrant)
+
 		return
 	}
 	limit, after := 50, uuid.Nil
@@ -107,6 +115,7 @@ func (h handler) list(w http.ResponseWriter, r *http.Request) {
 		limit, err = strconv.Atoi(query.Get("limit"))
 		if err != nil {
 			writeError(w, domain.ErrInvalidReviewGrant)
+
 			return
 		}
 	}
@@ -114,12 +123,14 @@ func (h handler) list(w http.ResponseWriter, r *http.Request) {
 		after, err = uuid.Parse(query.Get("after"))
 		if err != nil {
 			writeError(w, domain.ErrInvalidReviewGrant)
+
 			return
 		}
 	}
 	page, err := h.grants.List(r.Context(), topic, after, limit)
 	if err != nil {
 		writeError(w, err)
+
 		return
 	}
 	writeJSON(w, page)
@@ -129,6 +140,7 @@ func (h handler) check(w http.ResponseWriter, r *http.Request) {
 	topic, err := uuid.Parse(r.PathValue("topic_id"))
 	if err != nil {
 		writeError(w, domain.ErrInvalidReviewGrant)
+
 		return
 	}
 	var body struct {
@@ -140,6 +152,7 @@ func (h handler) check(w http.ResponseWriter, r *http.Request) {
 	ids, err := h.grants.Check(r.Context(), topic, body.UserIDs)
 	if err != nil {
 		writeError(w, err)
+
 		return
 	}
 	writeJSON(w, domain.ReviewGrantPage{UserIDs: ids})
@@ -150,6 +163,7 @@ func requestToken(r *http.Request) (string, error) {
 	if len(values) != 1 || len(values[0]) > 4096 {
 		return "", domain.ErrUnauthorized
 	}
+
 	return auth.BearerToken(values[0])
 }
 
@@ -158,8 +172,10 @@ func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(dst) != nil || decoder.Decode(new(any)) != io.EOF {
 		writeError(w, domain.ErrInvalidReviewGrant)
+
 		return false
 	}
+
 	return true
 }
 

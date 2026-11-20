@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const localProfile = "local"
+
 // Config объединяет бизнес-настройки Users: JWT, Media, bootstrap и защиту входа.
 // Инфраструктурный конфиг (HTTP, PostgreSQL, логирование, метрики) владеет parker.
 type Config struct {
@@ -58,7 +60,7 @@ type LoginThrottle struct {
 // Load читает бизнес-конфигурацию Users из environment и валидирует обязательные значения.
 func Load() (Config, error) {
 	cfg := Config{
-		Profile:      env("USERS_PROFILE", "local"),
+		Profile:      env("USERS_PROFILE", localProfile),
 		ReviewGrants: ReviewGrants{EntitiesURL: os.Getenv("USERS_ENTITIES_URL"), ReadToken: os.Getenv("USERS_REVIEW_GRANTS_TOKEN")},
 		JWT: JWT{
 			Secret:   env("JWT_SECRET", "local-development-secret-change-me"),
@@ -86,11 +88,11 @@ func Load() (Config, error) {
 	}
 
 	switch cfg.Profile {
-	case "local", "test", "staging", "production":
+	case localProfile, "test", "staging", "production":
 	default:
 		return Config{}, fmt.Errorf("invalid USERS_PROFILE")
 	}
-	if cfg.Profile != "local" {
+	if cfg.Profile != localProfile {
 		if cfg.Bootstrap.SuperuserEmail != "" || cfg.Bootstrap.SuperuserPassword != "" {
 			return Config{}, fmt.Errorf("bootstrap credentials require local profile")
 		}

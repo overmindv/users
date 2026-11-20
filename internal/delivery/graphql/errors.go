@@ -22,6 +22,7 @@ func errorPresenter(log *slog.Logger) gqlgen.ErrorPresenterFunc {
 				presented.Extensions = map[string]any{}
 			}
 			presented.Extensions["code"] = "GRAPHQL_VALIDATION_FAILED"
+
 			return presented
 		}
 

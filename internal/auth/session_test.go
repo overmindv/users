@@ -27,14 +27,18 @@ func (s *sessionMemory) CheckSession(context.Context, string, string, int64) ([]
 	if s.revoked {
 		return nil, domain.ErrUnauthorized
 	}
+
 	return []string{"user"}, nil
 }
 func (s *sessionMemory) RevokeSession(context.Context, string, string) error {
 	s.revoked = true
+
 	return nil
 }
 
 func TestPersistentSessionRevocation(t *testing.T) {
+	t.Parallel()
+
 	m := NewManager("secret", "users", time.Hour)
 	legacy, _, _ := m.Issue("user", nil)
 	store := &sessionMemory{}
@@ -65,6 +69,8 @@ func TestPersistentSessionRevocation(t *testing.T) {
 }
 
 func TestSessionHTTP(t *testing.T) {
+	t.Parallel()
+
 	m := NewManager("secret", "users", time.Hour)
 	store := &sessionMemory{}
 	m.SetSessionStore(store)
@@ -78,6 +84,7 @@ func TestSessionHTTP(t *testing.T) {
 		r.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
 		m.SessionHTTP(revoke).ServeHTTP(w, r)
+
 		return w
 	}
 	w := call(false, token)
