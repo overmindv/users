@@ -1,4 +1,9 @@
 type User {
+  timezone: String!
+  locale: String!
+  publicName: Boolean!
+  leaderboardVisible: Boolean!
+  displayName: String!
   id: ID!
   email: String!
   username: String!
@@ -15,6 +20,8 @@ type User {
 }
 
 type PublicUser {
+  displayName: String!
+  leaderboardVisible: Boolean!
   id: ID!
   username: String!
   firstName: String!
@@ -50,6 +57,10 @@ input LoginInput {
 }
 
 input UpdateUserInput {
+  timezone: String
+  locale: String
+  publicName: Boolean
+  leaderboardVisible: Boolean
   username: String
   firstName: String
   lastName: String

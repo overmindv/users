@@ -15,7 +15,7 @@ type UserRepository interface {
 	GetByUsername(context.Context, domain.Username) (*domain.User, error)
 	List(context.Context, string, int, int) ([]*domain.User, error)
 	ListPublic(context.Context, string, int, int) ([]*domain.User, error)
-	Update(context.Context, *domain.User) error
+	Update(context.Context, *domain.User, ...domain.ProfilePatch) error
 	UpdatePassword(context.Context, *domain.User) error
 	SetAvatar(context.Context, *domain.User) error
 	UpdateRoles(context.Context, *domain.User) error

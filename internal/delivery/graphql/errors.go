@@ -63,6 +63,7 @@ func domainError(err error) (string, string) {
 	case errors.Is(err, domain.ErrEmailAlreadyExists), errors.Is(err, domain.ErrUsernameExists):
 		return "ALREADY_EXISTS", genericMessage
 	case errors.Is(err, domain.ErrInvalidEmail), errors.Is(err, domain.ErrInvalidPhone), errors.Is(err, domain.ErrInvalidUsername),
+		errors.Is(err, domain.ErrInvalidTimezone), errors.Is(err, domain.ErrInvalidLocale),
 		errors.Is(err, domain.ErrInvalidName), errors.Is(err, domain.ErrInvalidBirthDate), errors.Is(err, domain.ErrInvalidPassword), errors.Is(err, domain.ErrInvalidUserID):
 		return "INVALID_ARGUMENT", genericMessage
 	default:

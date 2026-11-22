@@ -81,6 +81,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		return nil, err
 	}
 	user, err := r.Users.Update(ctx, usecase.UpdateUserInput{
+		Timezone: input.Timezone, Locale: input.Locale, PublicName: input.PublicName, LeaderboardVisible: input.LeaderboardVisible,
 		ID:             id,
 		Username:       input.Username,
 		FirstName:      input.FirstName,
@@ -180,10 +181,16 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	return toUser(user), nil
 }
 
-// User возвращает пользователя по ID для авторизованного actor.
+// User возвращает приватный профиль только владельцу или администратору.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	if _, err := auth.UserIDFromContext(ctx); err != nil {
+	actorID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if actorID != id {
+		if err := r.Resolver.Users.RequireAdmin(ctx, actorID); err != nil {
+			return nil, err
+		}
 	}
 	user, err := r.Resolver.Users.Get(ctx, id)
 	if err != nil {

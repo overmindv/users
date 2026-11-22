@@ -317,7 +317,7 @@ func (s *UserService) Update(ctx context.Context, input UpdateUserInput) (*domai
 		return nil, fmt.Errorf("get user for update: %w", err)
 	}
 
-	patch := domain.ProfilePatch{FirstName: input.FirstName, LastName: input.LastName}
+	patch := domain.ProfilePatch{FirstName: input.FirstName, LastName: input.LastName, Timezone: input.Timezone, Locale: input.Locale, PublicName: input.PublicName, LeaderboardVisible: input.LeaderboardVisible}
 	if input.Username != nil {
 		value, err := domain.NewUsername(*input.Username)
 		if err != nil {
@@ -346,11 +346,11 @@ func (s *UserService) Update(ctx context.Context, input UpdateUserInput) (*domai
 		return nil, err
 	}
 
-	if err := s.repository.Update(ctx, user); err != nil {
+	if err := s.repository.Update(ctx, user, patch); err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}
 
-	return user, nil
+	return s.repository.GetByID(ctx, input.ID)
 }
 
 // SetAdmin меняет роль admin у пользователя после проверки прав actor.
