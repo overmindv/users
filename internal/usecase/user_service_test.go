@@ -110,7 +110,7 @@ func (r *fakeRepository) SetAvatar(_ context.Context, user *domain.User) error {
 }
 
 // Update сохраняет изменения профиля в test repository.
-func (r *fakeRepository) Update(_ context.Context, user *domain.User) error {
+func (r *fakeRepository) Update(_ context.Context, user *domain.User, _ ...domain.ProfilePatch) error {
 	if r.updateErr != nil {
 		return r.updateErr
 	}

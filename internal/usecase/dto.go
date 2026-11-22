@@ -46,13 +46,17 @@ type AuthResult struct {
 
 // UpdateUserInput описывает частичное обновление профиля пользователя.
 type UpdateUserInput struct {
-	ID             string
-	Username       *string
-	FirstName      *string
-	LastName       *string
-	BirthDate      *time.Time
-	ClearBirthDate bool
-	Phone          *string
+	Timezone           *string
+	Locale             *string
+	PublicName         *bool
+	LeaderboardVisible *bool
+	ID                 string
+	Username           *string
+	FirstName          *string
+	LastName           *string
+	BirthDate          *time.Time
+	ClearBirthDate     bool
+	Phone              *string
 }
 
 // ListUsersInput задаёт поиск и пагинацию списка пользователей.

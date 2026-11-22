@@ -35,6 +35,7 @@ func toUser(user *domain.User) *model.User {
 	}
 
 	return &model.User{
+		Timezone: user.Timezone(), Locale: user.Locale(), PublicName: user.PublicName(), LeaderboardVisible: user.LeaderboardVisible(), DisplayName: user.DisplayName(),
 		ID:           user.ID(),
 		Email:        user.Email().String(),
 		Username:     user.Username().String(),
@@ -53,11 +54,17 @@ func toUser(user *domain.User) *model.User {
 
 // toPublicUser исключает email, телефон, birth date и служебные роли из публичного DTO.
 func toPublicUser(user *domain.User) *model.PublicUser {
+	firstName, lastName := "", ""
+	if user.PublicName() {
+		firstName, lastName = user.FirstName(), user.LastName()
+	}
+
 	return &model.PublicUser{
+		DisplayName: user.DisplayName(), LeaderboardVisible: user.LeaderboardVisible(),
 		ID:           user.ID(),
 		Username:     user.Username().String(),
-		FirstName:    user.FirstName(),
-		LastName:     user.LastName(),
+		FirstName:    firstName,
+		LastName:     lastName,
 		AvatarFileID: user.AvatarFileID(),
 		IsAdmin:      user.IsAdmin(),
 		CreatedAt:    user.CreatedAt().Format(time.RFC3339),

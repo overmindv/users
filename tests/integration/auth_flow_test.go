@@ -113,7 +113,7 @@ func (r *graphQLUserRepository) SetAvatar(ctx context.Context, user *domain.User
 }
 
 // Update сохраняет изменения пользователя в in-memory repository.
-func (r *graphQLUserRepository) Update(_ context.Context, user *domain.User) error {
+func (r *graphQLUserRepository) Update(_ context.Context, user *domain.User, _ ...domain.ProfilePatch) error {
 	if _, ok := r.users[user.ID()]; !ok {
 		return domain.ErrUserNotFound
 	}

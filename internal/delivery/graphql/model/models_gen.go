@@ -20,13 +20,15 @@ type Mutation struct {
 }
 
 type PublicUser struct {
-	ID           string  `json:"id"`
-	Username     string  `json:"username"`
-	FirstName    string  `json:"firstName"`
-	LastName     string  `json:"lastName"`
-	AvatarFileID *string `json:"avatarFileId,omitempty"`
-	IsAdmin      bool    `json:"isAdmin"`
-	CreatedAt    string  `json:"createdAt"`
+	DisplayName        string  `json:"displayName"`
+	LeaderboardVisible bool    `json:"leaderboardVisible"`
+	ID                 string  `json:"id"`
+	Username           string  `json:"username"`
+	FirstName          string  `json:"firstName"`
+	LastName           string  `json:"lastName"`
+	AvatarFileID       *string `json:"avatarFileId,omitempty"`
+	IsAdmin            bool    `json:"isAdmin"`
+	CreatedAt          string  `json:"createdAt"`
 }
 
 type Query struct {
@@ -44,26 +46,35 @@ type RegisterInput struct {
 }
 
 type UpdateUserInput struct {
-	Username       *string `json:"username,omitempty"`
-	FirstName      *string `json:"firstName,omitempty"`
-	LastName       *string `json:"lastName,omitempty"`
-	BirthDate      *string `json:"birthDate,omitempty"`
-	ClearBirthDate *bool   `json:"clearBirthDate,omitempty"`
-	Phone          *string `json:"phone,omitempty"`
+	Timezone           *string `json:"timezone,omitempty"`
+	Locale             *string `json:"locale,omitempty"`
+	PublicName         *bool   `json:"publicName,omitempty"`
+	LeaderboardVisible *bool   `json:"leaderboardVisible,omitempty"`
+	Username           *string `json:"username,omitempty"`
+	FirstName          *string `json:"firstName,omitempty"`
+	LastName           *string `json:"lastName,omitempty"`
+	BirthDate          *string `json:"birthDate,omitempty"`
+	ClearBirthDate     *bool   `json:"clearBirthDate,omitempty"`
+	Phone              *string `json:"phone,omitempty"`
 }
 
 type User struct {
-	ID           string   `json:"id"`
-	Email        string   `json:"email"`
-	Username     string   `json:"username"`
-	FirstName    string   `json:"firstName"`
-	LastName     string   `json:"lastName"`
-	BirthDate    *string  `json:"birthDate,omitempty"`
-	Phone        *string  `json:"phone,omitempty"`
-	AvatarFileID *string  `json:"avatarFileId,omitempty"`
-	Roles        []string `json:"roles"`
-	IsAdmin      bool     `json:"isAdmin"`
-	IsSuperuser  bool     `json:"isSuperuser"`
-	CreatedAt    string   `json:"createdAt"`
-	UpdatedAt    string   `json:"updatedAt"`
+	Timezone           string   `json:"timezone"`
+	Locale             string   `json:"locale"`
+	PublicName         bool     `json:"publicName"`
+	LeaderboardVisible bool     `json:"leaderboardVisible"`
+	DisplayName        string   `json:"displayName"`
+	ID                 string   `json:"id"`
+	Email              string   `json:"email"`
+	Username           string   `json:"username"`
+	FirstName          string   `json:"firstName"`
+	LastName           string   `json:"lastName"`
+	BirthDate          *string  `json:"birthDate,omitempty"`
+	Phone              *string  `json:"phone,omitempty"`
+	AvatarFileID       *string  `json:"avatarFileId,omitempty"`
+	Roles              []string `json:"roles"`
+	IsAdmin            bool     `json:"isAdmin"`
+	IsSuperuser        bool     `json:"isSuperuser"`
+	CreatedAt          string   `json:"createdAt"`
+	UpdatedAt          string   `json:"updatedAt"`
 }

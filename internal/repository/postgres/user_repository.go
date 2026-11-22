@@ -12,7 +12,7 @@ import (
 	"github.com/overmindv/users/internal/domain"
 )
 
-const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at, deleted_at, security_version`
+const userColumns = `id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at, deleted_at, security_version, timezone, locale, public_name, leaderboard_visible`
 
 // UserRepository хранит пользователей в PostgreSQL.
 type UserRepository struct {
@@ -28,10 +28,10 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 // Create вставляет нового активного пользователя.
 func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	_, err := r.securityExec(ctx, `
-		INSERT INTO users (id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), $9, $10, $11, $12, $13)`,
+		INSERT INTO users (id, email, password_hash, username, first_name, last_name, birth_date, phone, avatar_file_id, roles, is_superuser, created_at, updated_at, timezone, locale, public_name, leaderboard_visible)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
 		user.ID(), user.Email().String(), user.PasswordHash(), user.Username().String(), user.FirstName(), user.LastName(),
-		user.BirthDate(), user.Phone().String(), user.AvatarFileID(), user.Roles(), user.IsSuperuser(), user.CreatedAt(), user.UpdatedAt())
+		user.BirthDate(), user.Phone().String(), user.AvatarFileID(), user.Roles(), user.IsSuperuser(), user.CreatedAt(), user.UpdatedAt(), user.Timezone(), user.Locale(), user.PublicName(), user.LeaderboardVisible())
 
 	return mapError(err)
 }
@@ -93,7 +93,7 @@ func (r *UserRepository) ListPublic(ctx context.Context, search string, limit, o
 		SELECT `+userColumns+`
 		FROM users
 		WHERE deleted_at IS NULL
-		  AND (username::text ILIKE '%' || $1 || '%' OR first_name ILIKE '%' || $1 || '%' OR last_name ILIKE '%' || $1 || '%')
+		  AND (username::text ILIKE '%' || $1 || '%' OR (public_name AND (first_name ILIKE '%' || $1 || '%' OR last_name ILIKE '%' || $1 || '%')))
 		ORDER BY CASE WHEN lower(username::text)=lower($1) THEN 0 WHEN lower(username::text) LIKE lower($1) || '%' THEN 1 ELSE 2 END,
 		         username, id
 		LIMIT $2 OFFSET $3`, search, limit, offset)
@@ -152,10 +152,20 @@ func (r *UserRepository) SetAvatar(ctx context.Context, user *domain.User) error
 }
 
 // Update сохраняет изменяемые поля профиля пользователя.
-func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+func (r *UserRepository) Update(ctx context.Context, user *domain.User, patches ...domain.ProfilePatch) error {
+	var patch domain.ProfilePatch
+	if len(patches) > 0 {
+		patch = patches[0]
+	}
+	// Отсутствующие настройки не записываются из старого снимка: смена имени
+	// в другой вкладке не должна отменить закрытие публичного профиля.
 	result, err := r.pool.Exec(ctx, `
-		UPDATE users SET username=$2, first_name=$3, last_name=$4, birth_date=$5, phone=NULLIF($6, ''), updated_at=$7
-		WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.Username().String(), user.FirstName(), user.LastName(), user.BirthDate(), user.Phone().String(), user.UpdatedAt())
+		UPDATE users SET username=$2, first_name=$3, last_name=$4, birth_date=$5, phone=NULLIF($6, ''), updated_at=$7,
+		timezone=CASE WHEN $12 THEN $8 ELSE timezone END,
+		locale=CASE WHEN $13 THEN $9 ELSE locale END,
+		public_name=CASE WHEN $14 THEN $10 ELSE public_name END,
+		leaderboard_visible=CASE WHEN $15 THEN $11 ELSE leaderboard_visible END
+		WHERE id=$1 AND deleted_at IS NULL`, user.ID(), user.Username().String(), user.FirstName(), user.LastName(), user.BirthDate(), user.Phone().String(), user.UpdatedAt(), user.Timezone(), user.Locale(), user.PublicName(), user.LeaderboardVisible(), patch.Timezone != nil, patch.Locale != nil, patch.PublicName != nil, patch.LeaderboardVisible != nil)
 
 	if err = mapError(err); err != nil {
 		return err
@@ -226,8 +236,9 @@ func scanUser(row scanner) (*domain.User, error) {
 	var isSuperuser bool
 	var securityVersion int64
 	var createdAt, updatedAt time.Time
+	var settings domain.LearnerSettings
 
-	if err := row.Scan(&id, &emailValue, &passwordHash, &usernameValue, &firstName, &lastName, &birthDate, &phoneValue, &avatarFileID, &roles, &isSuperuser, &createdAt, &updatedAt, &deletedAt, &securityVersion); err != nil {
+	if err := row.Scan(&id, &emailValue, &passwordHash, &usernameValue, &firstName, &lastName, &birthDate, &phoneValue, &avatarFileID, &roles, &isSuperuser, &createdAt, &updatedAt, &deletedAt, &securityVersion, &settings.Timezone, &settings.Locale, &settings.PublicName, &settings.LeaderboardVisible); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, domain.ErrUserNotFound
 		}
@@ -257,6 +268,7 @@ func scanUser(row scanner) (*domain.User, error) {
 	return domain.RestoreUser(domain.RestoreUserParams{
 		SecurityVersion: securityVersion,
 		NewUserParams: domain.NewUserParams{
+			Settings:     settings,
 			ID:           id,
 			Email:        email,
 			PasswordHash: passwordHash,

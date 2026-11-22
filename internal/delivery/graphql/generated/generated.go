@@ -67,13 +67,15 @@ type ComplexityRoot struct {
 	}
 
 	PublicUser struct {
-		AvatarFileID func(childComplexity int) int
-		CreatedAt    func(childComplexity int) int
-		FirstName    func(childComplexity int) int
-		ID           func(childComplexity int) int
-		IsAdmin      func(childComplexity int) int
-		LastName     func(childComplexity int) int
-		Username     func(childComplexity int) int
+		AvatarFileID       func(childComplexity int) int
+		CreatedAt          func(childComplexity int) int
+		DisplayName        func(childComplexity int) int
+		FirstName          func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		IsAdmin            func(childComplexity int) int
+		LastName           func(childComplexity int) int
+		LeaderboardVisible func(childComplexity int) int
+		Username           func(childComplexity int) int
 	}
 
 	Query struct {
@@ -86,19 +88,24 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		AvatarFileID func(childComplexity int) int
-		BirthDate    func(childComplexity int) int
-		CreatedAt    func(childComplexity int) int
-		Email        func(childComplexity int) int
-		FirstName    func(childComplexity int) int
-		ID           func(childComplexity int) int
-		IsAdmin      func(childComplexity int) int
-		IsSuperuser  func(childComplexity int) int
-		LastName     func(childComplexity int) int
-		Phone        func(childComplexity int) int
-		Roles        func(childComplexity int) int
-		UpdatedAt    func(childComplexity int) int
-		Username     func(childComplexity int) int
+		AvatarFileID       func(childComplexity int) int
+		BirthDate          func(childComplexity int) int
+		CreatedAt          func(childComplexity int) int
+		DisplayName        func(childComplexity int) int
+		Email              func(childComplexity int) int
+		FirstName          func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		IsAdmin            func(childComplexity int) int
+		IsSuperuser        func(childComplexity int) int
+		LastName           func(childComplexity int) int
+		LeaderboardVisible func(childComplexity int) int
+		Locale             func(childComplexity int) int
+		Phone              func(childComplexity int) int
+		PublicName         func(childComplexity int) int
+		Roles              func(childComplexity int) int
+		Timezone           func(childComplexity int) int
+		UpdatedAt          func(childComplexity int) int
+		Username           func(childComplexity int) int
 	}
 }
 
@@ -284,6 +291,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PublicUser.CreatedAt(childComplexity), true
+	case "PublicUser.displayName":
+		if e.complexity.PublicUser.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.DisplayName(childComplexity), true
 	case "PublicUser.firstName":
 		if e.complexity.PublicUser.FirstName == nil {
 			break
@@ -308,6 +321,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PublicUser.LastName(childComplexity), true
+	case "PublicUser.leaderboardVisible":
+		if e.complexity.PublicUser.LeaderboardVisible == nil {
+			break
+		}
+
+		return e.complexity.PublicUser.LeaderboardVisible(childComplexity), true
 	case "PublicUser.username":
 		if e.complexity.PublicUser.Username == nil {
 			break
@@ -395,6 +414,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.CreatedAt(childComplexity), true
+	case "User.displayName":
+		if e.complexity.User.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.User.DisplayName(childComplexity), true
 	case "User.email":
 		if e.complexity.User.Email == nil {
 			break
@@ -431,18 +456,42 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.LastName(childComplexity), true
+	case "User.leaderboardVisible":
+		if e.complexity.User.LeaderboardVisible == nil {
+			break
+		}
+
+		return e.complexity.User.LeaderboardVisible(childComplexity), true
+	case "User.locale":
+		if e.complexity.User.Locale == nil {
+			break
+		}
+
+		return e.complexity.User.Locale(childComplexity), true
 	case "User.phone":
 		if e.complexity.User.Phone == nil {
 			break
 		}
 
 		return e.complexity.User.Phone(childComplexity), true
+	case "User.publicName":
+		if e.complexity.User.PublicName == nil {
+			break
+		}
+
+		return e.complexity.User.PublicName(childComplexity), true
 	case "User.roles":
 		if e.complexity.User.Roles == nil {
 			break
 		}
 
 		return e.complexity.User.Roles(childComplexity), true
+	case "User.timezone":
+		if e.complexity.User.Timezone == nil {
+			break
+		}
+
+		return e.complexity.User.Timezone(childComplexity), true
 	case "User.updatedAt":
 		if e.complexity.User.UpdatedAt == nil {
 			break
@@ -565,6 +614,11 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 
 var sources = []*ast.Source{
 	{Name: "../../../../api/graphql/schema.graphqls", Input: `type User {
+  timezone: String!
+  locale: String!
+  publicName: Boolean!
+  leaderboardVisible: Boolean!
+  displayName: String!
   id: ID!
   email: String!
   username: String!
@@ -581,6 +635,8 @@ var sources = []*ast.Source{
 }
 
 type PublicUser {
+  displayName: String!
+  leaderboardVisible: Boolean!
   id: ID!
   username: String!
   firstName: String!
@@ -616,6 +672,10 @@ input LoginInput {
 }
 
 input UpdateUserInput {
+  timezone: String
+  locale: String
+  publicName: Boolean
+  leaderboardVisible: Boolean
   username: String
   firstName: String
   lastName: String
@@ -928,6 +988,16 @@ func (ec *executionContext) fieldContext_AuthPayload_user(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1302,6 +1372,16 @@ func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1371,6 +1451,16 @@ func (ec *executionContext) fieldContext_Mutation_setMyAvatar(ctx context.Contex
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1481,6 +1571,16 @@ func (ec *executionContext) fieldContext_Mutation_setUserAdmin(ctx context.Conte
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1550,6 +1650,16 @@ func (ec *executionContext) fieldContext_Mutation_setUserAdminByUsername(ctx con
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1590,6 +1700,64 @@ func (ec *executionContext) fieldContext_Mutation_setUserAdminByUsername(ctx con
 	if fc.Args, err = ec.field_Mutation_setUserAdminByUsername_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_displayName(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_displayName,
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_displayName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PublicUser_leaderboardVisible(ctx context.Context, field graphql.CollectedField, obj *model.PublicUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PublicUser_leaderboardVisible,
+		func(ctx context.Context) (any, error) {
+			return obj.LeaderboardVisible, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PublicUser_leaderboardVisible(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PublicUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -1821,6 +1989,16 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1879,6 +2057,16 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -1948,6 +2136,16 @@ func (ec *executionContext) fieldContext_Query_userByUsername(ctx context.Contex
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -2017,6 +2215,16 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "timezone":
+				return ec.fieldContext_User_timezone(ctx, field)
+			case "locale":
+				return ec.fieldContext_User_locale(ctx, field)
+			case "publicName":
+				return ec.fieldContext_User_publicName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_User_leaderboardVisible(ctx, field)
+			case "displayName":
+				return ec.fieldContext_User_displayName(ctx, field)
 			case "id":
 				return ec.fieldContext_User_id(ctx, field)
 			case "email":
@@ -2086,6 +2294,10 @@ func (ec *executionContext) fieldContext_Query_publicUser(ctx context.Context, f
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "displayName":
+				return ec.fieldContext_PublicUser_displayName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_PublicUser_leaderboardVisible(ctx, field)
 			case "id":
 				return ec.fieldContext_PublicUser_id(ctx, field)
 			case "username":
@@ -2143,6 +2355,10 @@ func (ec *executionContext) fieldContext_Query_publicUsers(ctx context.Context, 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "displayName":
+				return ec.fieldContext_PublicUser_displayName(ctx, field)
+			case "leaderboardVisible":
+				return ec.fieldContext_PublicUser_leaderboardVisible(ctx, field)
 			case "id":
 				return ec.fieldContext_PublicUser_id(ctx, field)
 			case "username":
@@ -2278,6 +2494,151 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_timezone(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_timezone,
+		func(ctx context.Context) (any, error) {
+			return obj.Timezone, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_timezone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_locale(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_locale,
+		func(ctx context.Context) (any, error) {
+			return obj.Locale, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_locale(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_publicName(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_publicName,
+		func(ctx context.Context) (any, error) {
+			return obj.PublicName, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_publicName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_leaderboardVisible(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_leaderboardVisible,
+		func(ctx context.Context) (any, error) {
+			return obj.LeaderboardVisible, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_leaderboardVisible(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_displayName(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_displayName,
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_displayName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -4251,13 +4612,41 @@ func (ec *executionContext) unmarshalInputUpdateUserInput(ctx context.Context, o
 		asMap["clearBirthDate"] = false
 	}
 
-	fieldsInOrder := [...]string{"username", "firstName", "lastName", "birthDate", "clearBirthDate", "phone"}
+	fieldsInOrder := [...]string{"timezone", "locale", "publicName", "leaderboardVisible", "username", "firstName", "lastName", "birthDate", "clearBirthDate", "phone"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "timezone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timezone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Timezone = data
+		case "locale":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("locale"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Locale = data
+		case "publicName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("publicName"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PublicName = data
+		case "leaderboardVisible":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("leaderboardVisible"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LeaderboardVisible = data
 		case "username":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -4483,6 +4872,16 @@ func (ec *executionContext) _PublicUser(ctx context.Context, sel ast.SelectionSe
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("PublicUser")
+		case "displayName":
+			out.Values[i] = ec._PublicUser_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "leaderboardVisible":
+			out.Values[i] = ec._PublicUser_leaderboardVisible(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "id":
 			out.Values[i] = ec._PublicUser_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4731,6 +5130,31 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("User")
+		case "timezone":
+			out.Values[i] = ec._User_timezone(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "locale":
+			out.Values[i] = ec._User_locale(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "publicName":
+			out.Values[i] = ec._User_publicName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "leaderboardVisible":
+			out.Values[i] = ec._User_leaderboardVisible(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._User_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "id":
 			out.Values[i] = ec._User_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

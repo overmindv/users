@@ -7,6 +7,7 @@ import (
 
 // User представляет aggregate пользователя Users с профилем, ролями и soft delete состоянием.
 type User struct {
+	settings        LearnerSettings
 	id              string
 	securityVersion int64
 	email           Email
@@ -29,6 +30,7 @@ const RoleAdmin = "admin"
 
 // NewUserParams описывает входные данные создания нового пользователя.
 type NewUserParams struct {
+	Settings     LearnerSettings
 	ID           string
 	Email        Email
 	PasswordHash string
@@ -54,11 +56,15 @@ type RestoreUserParams struct {
 
 // ProfilePatch описывает частичное изменение профиля пользователя.
 type ProfilePatch struct {
-	Username  *Username
-	FirstName *string
-	LastName  *string
-	BirthDate **time.Time
-	Phone     *Phone
+	Timezone           *string
+	Locale             *string
+	PublicName         *bool
+	LeaderboardVisible *bool
+	Username           *Username
+	FirstName          *string
+	LastName           *string
+	BirthDate          **time.Time
+	Phone              *Phone
 }
 
 // NewUser создаёт нового пользователя из валидированных параметров.
@@ -90,13 +96,23 @@ func NewUser(params NewUserParams) (*User, error) {
 		return nil, err
 	}
 
-	if err := validateBirthDate(params.BirthDate, params.Now); err != nil {
-		return nil, err
+	if birthErr := validateBirthDate(params.BirthDate, params.Now); birthErr != nil {
+		return nil, birthErr
 	}
 
 	now := params.Now.UTC()
+	settings := defaultSettings(params.Settings)
+	settings.Timezone, err = normalizeTimezone(settings.Timezone)
+	if err != nil {
+		return nil, err
+	}
+	settings.Locale, err = normalizeLocale(settings.Locale)
+	if err != nil {
+		return nil, err
+	}
 
 	return &User{
+		settings:        settings,
 		id:              params.ID,
 		securityVersion: 1,
 		email:           params.Email,
@@ -118,6 +134,7 @@ func NewUser(params NewUserParams) (*User, error) {
 // На вход получает все сохранённые поля, на выход возвращает доменную модель без повторной бизнес-валидации.
 func RestoreUser(params RestoreUserParams) *User {
 	return &User{
+		settings:        defaultSettings(params.Settings),
 		id:              params.ID,
 		securityVersion: params.SecurityVersion,
 		email:           params.Email,
@@ -145,6 +162,10 @@ func (u *User) SetAvatar(fileID *string, now time.Time) {
 // UpdateProfile применяет частичное обновление профиля пользователя.
 // На вход получает patch и текущее время, на выход возвращает ошибку, если новые значения нарушают правила профиля.
 func (u *User) UpdateProfile(patch ProfilePatch, now time.Time) error {
+	settings, err := u.patchLearnerSettings(patch)
+	if err != nil {
+		return err
+	}
 	if patch.Username != nil {
 		u.username = *patch.Username
 	}
@@ -175,6 +196,7 @@ func (u *User) UpdateProfile(patch ProfilePatch, now time.Time) error {
 	if patch.Phone != nil {
 		u.phone = *patch.Phone
 	}
+	u.settings = settings
 	u.updatedAt = now.UTC()
 
 	return nil
