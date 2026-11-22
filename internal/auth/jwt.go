@@ -15,6 +15,7 @@ type Manager struct {
 	lifetime time.Duration
 	now      func() time.Time
 	sessions SessionStore
+	refresh  RefreshStore
 }
 
 // Claims описывает JWT claims, которые нужны gateway для проверки ролей.

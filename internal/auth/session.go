@@ -69,7 +69,7 @@ func (m *Manager) Validate(ctx context.Context, value string) (*Claims, error) {
 	return claims, nil
 }
 
-// Revoke идемпотентно отзывает только предъявленную подписанную сессию.
+// Revoke отзывает предъявленную сессию и её refresh family, если она есть.
 func (m *Manager) Revoke(ctx context.Context, value string) error {
 	claims, err := m.parseClaims(value)
 	if err != nil {
