@@ -15,7 +15,7 @@ import (
 	"github.com/overmindv/users/internal/domain"
 )
 
-const MaxPageBytes = 256 << 10
+const MaxPageBytes = 2 << 20
 
 type Endpoint struct {
 	URL   string `json:"url"`
@@ -68,15 +68,19 @@ func (c *Client) Export(ctx context.Context, owner, userID, cursor, watermark st
 
 func ValidatePage(owner, userID, cursor, watermark string, page domain.ExportPage) error {
 	invalid := errors.New("invalid export page")
-	kinds := map[string][]string{"tasks": {"submission", "attempt"}, "recommendations": {"study_activity", "plan", "topic_profile"}, "content": {"draft", "contribution"}, "media": {"file"}, "rating": {"score"}, "feed": {"entry"}, "sandbox": {"execution"}}
+	kinds := map[string][]string{"tasks": {"submission", "attempt", "task_revision", "task_review"}, "recommendations": {"study_activity", "plan", "topic_profile"}, "content": {"draft", "contribution"}, "media": {"file"}, "rating": {"score"}, "feed": {"entry"}, "sandbox": {"execution"}}
 	if page.UserID != userID || page.Watermark == "" || len(page.Watermark) > 256 || len(page.NextCursor) > 1024 || (page.NextCursor != "" && page.NextCursor == cursor) || (watermark != "" && page.Watermark != watermark) || len(page.Records) > 100 || page.Records == nil {
 		return invalid
 	}
 	if _, ok := kinds[owner]; !ok {
 		return invalid
 	}
+	textLimit := 64 << 10
+	if owner == "tasks" {
+		textLimit = 256 << 10
+	}
 	for _, record := range page.Records {
-		if record.UserID != userID || uuid.Validate(record.ID) != nil || !slices.Contains(kinds[owner], record.Kind) || record.OccurredAt.IsZero() || len(record.Title) > 1000 || len(record.Text) > 64<<10 || len(record.Result) > 2000 || (record.ResourceID != "" && uuid.Validate(record.ResourceID) != nil) {
+		if record.UserID != userID || uuid.Validate(record.ID) != nil || !slices.Contains(kinds[owner], record.Kind) || record.OccurredAt.IsZero() || len(record.Title) > 1000 || len(record.Text) > textLimit || len(record.Result) > 2000 || (record.ResourceID != "" && uuid.Validate(record.ResourceID) != nil) {
 			return invalid
 		}
 	}

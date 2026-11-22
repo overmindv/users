@@ -50,12 +50,12 @@ Gateway/UI — отдельный OVM-111. Настройки production зде�
 ```
 
 Запись: обязательные `user_id`, `id` (UUID), `kind`, `occurred_at` (RFC3339);
-необязательные `resource_id` (UUID), `title` (до 1000 байт), `text` (до 64 KiB),
+необязательные `resource_id` (UUID), `title` (до 1000 байт), `text` (до 64 KiB, для Tasks до 256 KiB),
 `result` (до 2000 байт). Других полей нет. Допустимые kind:
 
 | Сервис | Kind |
 | --- | --- |
-| tasks | submission, attempt |
+| tasks | submission, attempt, task_revision, task_review |
 | recommendations | study_activity, plan, topic_profile |
 | content | draft, contribution |
 | media | file |
@@ -65,7 +65,7 @@ Gateway/UI — отдельный OVM-111. Настройки production зде�
 
 Владелец возвращает только данные subject. Чужие публикации, ответы, скрытые
 тесты и credentials запрещены. Users проверяет subject, kind, allowlist полей,
-стабильный watermark, продвижение cursor. 100 записей/256 KiB на страницу,
+стабильный watermark, продвижение cursor. 100 записей/2 MiB на страницу,
 1000 страниц на владельца, 10 MiB на запрос. Превышение — ошибка, не обрезанный
 «успешный» экспорт. Artifact живёт максимум 24 часа от создания запроса; cleanup
 работает пакетами. Поля профиля выбраны явно, password/token hashes не экспортируются.
