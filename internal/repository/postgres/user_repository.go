@@ -138,12 +138,7 @@ func (r *UserRepository) SetAvatar(ctx context.Context, user *domain.User) error
 	if result.RowsAffected() == 0 {
 		return domain.ErrUserNotFound
 	}
-	_, err = tx.Exec(ctx, `
-		INSERT INTO user_outbox_events (id,aggregate_id,event_type,payload,available_at,created_at,updated_at)
-		VALUES (gen_random_uuid(),$1::uuid,'user.avatar_changed',jsonb_build_object('user_id',($1::uuid)::text,'file_id',($2::uuid)::text),clock_timestamp(),clock_timestamp(),clock_timestamp())`, user.ID(), user.AvatarFileID())
-	if err != nil {
-		return fmt.Errorf("insert avatar outbox event: %w", err)
-	}
+	// Триггер сохраняет versioned outbox в той же транзакции, включая удаление аккаунта.
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit avatar transaction: %w", err)
 	}
