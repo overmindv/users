@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,6 +36,30 @@ func TestExportRejectsForeignAndUnknownFields(t *testing.T) {
 	defer server.Close()
 	if _, err := New(map[string]Endpoint{"tasks": {URL: server.URL}}).Export(context.Background(), "tasks", owner, "", ""); err == nil {
 		t.Fatal("foreign subject accepted")
+	}
+}
+
+func TestTasksAuthorAndMaximumCodeExport(t *testing.T) {
+	t.Parallel()
+	subject := uuid.NewString()
+	page := domain.ExportPage{UserID: subject, Watermark: "snapshot", Records: []domain.ExportRecord{{UserID: subject, ID: uuid.NewString(), Kind: "task_revision", OccurredAt: time.Now().UTC(), Text: strings.Repeat("<", 256<<10)}}}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _ = json.NewEncoder(w).Encode(page) }))
+	defer server.Close()
+	if _, err := New(map[string]Endpoint{"tasks": {URL: server.URL}}).Export(t.Context(), "tasks", subject, "", ""); err != nil {
+		t.Fatal("valid maximum escaped author text rejected", err)
+	}
+	page.Records[0].Text += "x"
+	if ValidatePage("tasks", subject, "", "", page) == nil {
+		t.Fatal("oversized text accepted")
+	}
+	page.Records[0].Text = "own review"
+	page.Records[0].Kind = "task_review"
+	if err := ValidatePage("tasks", subject, "", "", page); err != nil {
+		t.Fatal(err)
+	}
+	page.Records[0].Kind = "hidden_tests"
+	if ValidatePage("tasks", subject, "", "", page) == nil {
+		t.Fatal("hidden tests accepted")
 	}
 }
 
