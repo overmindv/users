@@ -14,6 +14,24 @@ import (
 	"github.com/overmindv/users/internal/usecase"
 )
 
+// RequestAccountRecovery одинаково отвечает независимо от существования email.
+func (r *mutationResolver) RequestAccountRecovery(ctx context.Context, email string, purpose string) (bool, error) {
+	err := r.Recovery.Request(ctx, email, purpose, auth.ClientIP(ctx))
+	return err == nil, err
+}
+
+// ResetAccountPassword потребляет reset token и отзывает прежние сессии.
+func (r *mutationResolver) ResetAccountPassword(ctx context.Context, token string, password string) (bool, error) {
+	err := r.Recovery.Reset(ctx, token, password, auth.ClientIP(ctx))
+	return err == nil, err
+}
+
+// VerifyAccountEmail подтверждает владение адресом одноразовым токеном.
+func (r *mutationResolver) VerifyAccountEmail(ctx context.Context, token string) (bool, error) {
+	err := r.Recovery.Verify(ctx, token, auth.ClientIP(ctx))
+	return err == nil, err
+}
+
 // RefreshSession is the resolver for the refreshSession field.
 func (r *mutationResolver) RefreshSession(ctx context.Context, refreshToken string) (*model.AuthPayload, error) {
 	result, err := r.Users.RefreshSession(ctx, refreshToken)

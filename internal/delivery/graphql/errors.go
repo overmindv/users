@@ -54,7 +54,7 @@ func domainError(err error) (string, string) {
 	switch {
 	case errors.Is(err, domain.ErrPermissionDenied), errors.Is(err, domain.ErrCannotDemoteSuperuser):
 		return "FORBIDDEN", genericMessage
-	case errors.Is(err, domain.ErrUnauthorized), errors.Is(err, domain.ErrInvalidCredentials):
+	case errors.Is(err, domain.ErrUnauthorized), errors.Is(err, domain.ErrInvalidCredentials), errors.Is(err, domain.ErrInvalidRecoveryToken):
 		return "UNAUTHENTICATED", genericMessage
 	case errors.Is(err, domain.ErrTooManyRequests):
 		return "RATE_LIMITED", genericMessage
