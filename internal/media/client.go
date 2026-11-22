@@ -40,8 +40,8 @@ func (c *Client) ValidateAvatar(ctx context.Context, userID, fileID string) erro
 }
 
 // ReplaceAvatarBinding идемпотентно синхронизирует binding Media с Users source of truth.
-func (c *Client) ReplaceAvatarBinding(ctx context.Context, userID string, fileID *string) error {
-	return c.request(ctx, http.MethodPut, "/v1/internal/users/"+url.PathEscape(userID)+"/avatar-binding", "", map[string]any{"file_id": fileID}, nil)
+func (c *Client) ReplaceAvatarBinding(ctx context.Context, userID string, fileID *string, version int64) error {
+	return c.request(ctx, http.MethodPut, "/v1/internal/users/"+url.PathEscape(userID)+"/avatar-binding/versioned", "", map[string]any{"file_id": fileID, "version": version}, nil)
 }
 
 // Ready проверяет доступность Media API.
