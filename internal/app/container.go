@@ -60,6 +60,10 @@ func Build(app *parker.App) error {
 		mediaClient,
 	)
 	users.SetLocalCredentials(cfg.Profile == localProfile)
+	recovery, recoveryErr := buildRecovery(app, pool, repository, cfg.Recovery)
+	if recoveryErr != nil {
+		return recoveryErr
+	}
 	// Общие для всех реплик лимиты по email и доверенному IP.
 	throttle := postgresrepo.NewLoginThrottler(pool, cfg.JWT.Secret, cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.IPMaxAttempts, cfg.LoginThrottle.Window)
 	users.SetLoginThrottler(throttle)
@@ -87,7 +91,7 @@ func Build(app *parker.App) error {
 	// GraphQL-транспорт; JWT применяется к /query и /graphql, но не к /playground.
 	graphqldelivery.Register(
 		app.HTTP(),
-		&graphqldelivery.Resolver{Users: users},
+		&graphqldelivery.Resolver{Users: users, Recovery: recovery},
 		func(h http.Handler) http.Handler {
 			return auth.LoginClientIP(cfg.JWT.Secret, auth.OptionalHTTP(jwtManager, h))
 		},

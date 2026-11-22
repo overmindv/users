@@ -79,6 +79,9 @@ type Query {
 }
 
 type Mutation {
+  requestAccountRecovery(email: String!, purpose: String! = "reset"): Boolean!
+  resetAccountPassword(token: String!, password: String!): Boolean!
+  verifyAccountEmail(token: String!): Boolean!
   refreshSession(refreshToken: String!): AuthPayload!
   revokeRefreshSession(refreshToken: String!): Boolean!
   register(input: RegisterInput!): AuthPayload!

@@ -19,6 +19,7 @@ type Config struct {
 	Bootstrap     Bootstrap
 	LoginThrottle LoginThrottle
 	ReviewGrants  ReviewGrants
+	Recovery      Recovery
 }
 
 type ReviewGrants struct {
@@ -141,6 +142,12 @@ func Load() (Config, error) {
 			review.ReadToken == cfg.JWT.Secret || review.ReadToken == cfg.Media.Token {
 			return Config{}, fmt.Errorf("review grants require USERS_ENTITIES_URL and a separate USERS_REVIEW_GRANTS_TOKEN")
 		}
+	}
+
+	var recoveryErr error
+	cfg.Recovery, recoveryErr = loadRecovery()
+	if recoveryErr != nil {
+		return Config{}, recoveryErr
 	}
 
 	return cfg, nil
