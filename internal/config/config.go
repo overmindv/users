@@ -22,6 +22,7 @@ type Config struct {
 	LoginThrottle      LoginThrottle
 	ReviewGrants       ReviewGrants
 	Recovery           Recovery
+	Privacy            Privacy
 	LoginContextSecret string
 }
 
@@ -97,6 +98,11 @@ func Load() (Config, error) {
 	if err := configureSigning(&cfg); err != nil {
 		return Config{}, err
 	}
+	privacy, privacyErr := loadPrivacy()
+	if privacyErr != nil {
+		return Config{}, privacyErr
+	}
+	cfg.Privacy = privacy
 	switch cfg.Profile {
 	case localProfile, "test", "staging", "production":
 	default:

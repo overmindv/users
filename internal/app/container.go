@@ -49,6 +49,9 @@ func Build(app *parker.App) error {
 	repository.SetLocalCredentials(cfg.Profile == localProfile)
 	jwtManager.SetSessionStore(repository)
 	jwtManager.SetRefreshStore(repository)
+	if err := buildPrivacy(app, pool, repository, jwtManager, cfg); err != nil {
+		return err
+	}
 	app.HTTP().Handle("POST /internal/session/check", jwtManager.SessionHTTP(false))
 	app.HTTP().Handle("POST /internal/session/revoke", jwtManager.SessionHTTP(true))
 	if cfg.ReviewGrants.ReadToken != "" {
@@ -68,6 +71,7 @@ func Build(app *parker.App) error {
 		mediaClient,
 	)
 	users.SetLocalCredentials(cfg.Profile == localProfile)
+	users.SetPrivacyEnabled(cfg.Privacy.Enabled)
 	recovery, recoveryErr := buildRecovery(app, pool, repository, cfg.Recovery)
 	if recoveryErr != nil {
 		return recoveryErr

@@ -44,7 +44,7 @@ func TestRegistrationLoginProfileUpdateAndSoftDelete(t *testing.T) {
 	}
 	defer pool.Close()
 
-	if _, err := pool.Exec(ctx, "TRUNCATE recovery_mail_outbox,user_recovery_tokens,user_refresh_tokens,user_refresh_families,topic_review_grants, user_sessions, user_outbox_events, users"); err != nil {
+	if _, err := pool.Exec(ctx, "TRUNCATE privacy_deletion_ledger,privacy_export_pages,privacy_owner_steps,privacy_requests,recovery_mail_outbox,user_recovery_tokens,user_refresh_tokens,user_refresh_families,topic_review_grants, user_sessions, user_outbox_events, users"); err != nil {
 		t.Fatal(err)
 	}
 

@@ -20,7 +20,11 @@ type UserService struct {
 	media            UserMediaStorage
 	throttler        LoginThrottler
 	localCredentials bool
+	privacyEnabled   bool
 }
+
+// SetPrivacyEnabled переводит удаление на подтверждаемый workflow.
+func (s *UserService) SetPrivacyEnabled(enabled bool) { s.privacyEnabled = enabled }
 
 // NewUserServiceWithMedia собирает Users usecase с проверкой файлов через Media.
 func NewUserServiceWithMedia(repository UserRepository, passwords PasswordHasher, tokens TokenManager, ids IDGenerator, clock Clock, media UserMediaStorage) *UserService {
@@ -396,6 +400,9 @@ func (s *UserService) SetAdminByUsername(ctx context.Context, input SetAdminByUs
 
 // Delete выполняет soft delete пользователя, запрещая удаление суперпользователя.
 func (s *UserService) Delete(ctx context.Context, id string) error {
+	if s.privacyEnabled {
+		return domain.ErrPermissionDenied
+	}
 	user, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("get user for delete: %w", err)
