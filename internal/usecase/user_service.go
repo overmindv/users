@@ -143,7 +143,7 @@ func (s *UserService) Register(ctx context.Context, input RegisterInput) (*AuthR
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
-	return s.authResult(ctx, user)
+	return s.authResult(ctx, user, input.RefreshSession)
 }
 
 // Login проверяет email и пароль существующего пользователя и возвращает JWT.
@@ -209,7 +209,7 @@ func (s *UserService) Login(ctx context.Context, input LoginInput) (*AuthResult,
 		}
 	}
 
-	return s.authResult(ctx, user)
+	return s.authResult(ctx, user, input.RefreshSession)
 }
 
 // Get возвращает активного пользователя по ID.
@@ -413,7 +413,19 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 }
 
 // authResult выпускает JWT и собирает результат успешной регистрации или входа.
-func (s *UserService) authResult(ctx context.Context, user *domain.User) (*AuthResult, error) {
+func (s *UserService) authResult(ctx context.Context, user *domain.User, refresh bool) (*AuthResult, error) {
+	if refresh {
+		manager, ok := s.tokens.(RefreshTokenManager)
+		if !ok {
+			return nil, domain.ErrUnauthorized
+		}
+		tokens, err := manager.IssueRefreshSession(ctx, user)
+		if err != nil {
+			return nil, err
+		}
+
+		return refreshAuthResult(user, tokens), nil
+	}
 	var token string
 	var expiresAt time.Time
 	var err error
