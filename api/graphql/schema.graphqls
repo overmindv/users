@@ -28,9 +28,12 @@ type AuthPayload {
   user: User!
   token: String!
   expiresAt: String!
+  refreshToken: String
+  refreshExpiresAt: String
 }
 
 input RegisterInput {
+  refreshSession: Boolean = false
   email: String!
   password: String!
   username: String!
@@ -41,6 +44,7 @@ input RegisterInput {
 }
 
 input LoginInput {
+  refreshSession: Boolean = false
   email: String!
   password: String!
 }
@@ -64,6 +68,8 @@ type Query {
 }
 
 type Mutation {
+  refreshSession(refreshToken: String!): AuthPayload!
+  revokeRefreshSession(refreshToken: String!): Boolean!
   register(input: RegisterInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
   updateUser(id: ID!, input: UpdateUserInput!): User!

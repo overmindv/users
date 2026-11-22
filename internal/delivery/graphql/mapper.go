@@ -66,10 +66,19 @@ func toPublicUser(user *domain.User) *model.PublicUser {
 
 // toAuthPayload преобразует результат usecase в GraphQL auth payload.
 func toAuthPayload(result *usecase.AuthResult) *model.AuthPayload {
+	var refreshToken, refreshExpiresAt *string
+	if result.RefreshToken != "" {
+		refreshToken = &result.RefreshToken
+		expiry := result.RefreshExpiresAt.Format(time.RFC3339)
+		refreshExpiresAt = &expiry
+	}
+
 	return &model.AuthPayload{
-		User:      toUser(result.User),
-		Token:     result.Token,
-		ExpiresAt: result.ExpiresAt.Format(time.RFC3339),
+		User:             toUser(result.User),
+		RefreshToken:     refreshToken,
+		RefreshExpiresAt: refreshExpiresAt,
+		Token:            result.Token,
+		ExpiresAt:        result.ExpiresAt.Format(time.RFC3339),
 	}
 }
 

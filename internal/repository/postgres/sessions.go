@@ -48,9 +48,16 @@ func (r *UserRepository) CheckSession(ctx context.Context, userID, id string, ve
 
 // RevokeSession сохраняет отзыв; повторный logout безопасен.
 func (r *UserRepository) RevokeSession(ctx context.Context, userID, id string) error {
-	_, err := r.pool.Exec(ctx, `UPDATE user_sessions SET revoked_at=COALESCE(revoked_at,clock_timestamp()) WHERE id=$1 AND user_id=$2`, id, userID)
+	var familyID string
+	err := r.pool.QueryRow(ctx, `SELECT COALESCE(refresh_family_id::text,'') FROM user_sessions WHERE id=$1 AND user_id=$2`, id, userID).Scan(&familyID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
 
-	return err
+	return r.revokeAccessFamily(ctx, userID, id, familyID)
 }
 
 // UpgradePassword не перезаписывает пароль, изменённый после проверки входа.

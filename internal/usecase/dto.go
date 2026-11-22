@@ -8,13 +8,14 @@ import (
 
 // RegisterInput описывает данные для регистрации обычного пользователя.
 type RegisterInput struct {
-	Email     string
-	Password  string
-	Username  string
-	FirstName string
-	LastName  string
-	BirthDate *time.Time
-	Phone     string
+	RefreshSession bool
+	Email          string
+	Password       string
+	Username       string
+	FirstName      string
+	LastName       string
+	BirthDate      *time.Time
+	Phone          string
 }
 
 // BootstrapSuperuserInput описывает данные первого суперпользователя из конфигурации запуска.
@@ -28,16 +29,19 @@ type BootstrapSuperuserInput struct {
 
 // LoginInput описывает данные входа пользователя.
 type LoginInput struct {
-	ClientIP string // Проверенный транспортом IP, не поле публичной GraphQL-схемы.
-	Email    string
-	Password string
+	RefreshSession bool
+	ClientIP       string // Проверенный транспортом IP, не поле публичной GraphQL-схемы.
+	Email          string
+	Password       string
 }
 
 // AuthResult объединяет пользователя и выпущенный JWT.
 type AuthResult struct {
-	User      *domain.User
-	Token     string
-	ExpiresAt time.Time
+	RefreshToken     string
+	RefreshExpiresAt time.Time
+	User             *domain.User
+	Token            string
+	ExpiresAt        time.Time
 }
 
 // UpdateUserInput описывает частичное обновление профиля пользователя.

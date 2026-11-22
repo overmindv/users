@@ -98,3 +98,21 @@ check возвращает только user_id/roles/session_id/expires_at; rev
 отключить triggers и должен быть недоступен приложению в production.
 Guard сериализует снятие административных прав и оставляет одного пригодного
 администратора (non-demo, Argon2id). Audit откатывается вместе с изменением.
+
+## Ротация сессий (OVM-267)
+
+Внутренний GraphQL Users поддерживает opt-in `refreshSession: true` в register/login.
+Без opt-in поведение прежнее, поля `refreshToken`/`refreshExpiresAt` равны null.
+Refresh credentials — случайные 32 байта, в БД только SHA-256; family живёт 30 дней
+без продления при ротации. `refreshSession(refreshToken)` возвращает новые credentials;
+`revokeRefreshSession(refreshToken)` отзывает family. Access JWT для них не требуется
+(не передавать истёкший Authorization). Старый refresh нельзя повторять: reuse отзывает
+всю family, включая access JWT победителя конкурентной ротации. Клиент сериализует refresh.
+Обычный access logout отзывает также его family; другие входы остаются действующими.
+Смена пароля/ролей/статуса блокирует refresh через security_version.
+
+Сначала применить миграцию `202611220001`, затем запустить сервис. Gateway/frontend
+ещё не включают opt-in: браузерное автоматическое продление — следующий срез с httpOnly
+cookie, CSRF и coalescing. Потеря ответа после commit требует нового входа; автоматический
+повтор старого refresh небезопасен. Cleanup истёкших family в этот срез не входит.
+OpenSpec change в sibling docs: `rotate-users-refresh-sessions`.
