@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/overmindv/users/internal/auth"
 )
 
 const localProfile = "local"
@@ -13,13 +15,14 @@ const localProfile = "local"
 // Config объединяет бизнес-настройки Users: JWT, Media, bootstrap и защиту входа.
 // Инфраструктурный конфиг (HTTP, PostgreSQL, логирование, метрики) владеет parker.
 type Config struct {
-	Profile       string
-	JWT           JWT
-	Media         Media
-	Bootstrap     Bootstrap
-	LoginThrottle LoginThrottle
-	ReviewGrants  ReviewGrants
-	Recovery      Recovery
+	Profile            string
+	JWT                JWT
+	Media              Media
+	Bootstrap          Bootstrap
+	LoginThrottle      LoginThrottle
+	ReviewGrants       ReviewGrants
+	Recovery           Recovery
+	LoginContextSecret string
 }
 
 type ReviewGrants struct {
@@ -29,9 +32,12 @@ type ReviewGrants struct {
 
 // JWT описывает настройки выпуска access token.
 type JWT struct {
-	Secret   string
-	Issuer   string
-	Lifetime time.Duration
+	Secret      string
+	Issuer      string
+	Lifetime    time.Duration
+	SigningKeys *auth.SigningKeys
+	Audience    string
+	LegacyUntil time.Time
 }
 
 // Media описывает внутреннее подключение Users к Media.
@@ -88,6 +94,9 @@ func Load() (Config, error) {
 		},
 	}
 
+	if err := configureSigning(&cfg); err != nil {
+		return Config{}, err
+	}
 	switch cfg.Profile {
 	case localProfile, "test", "staging", "production":
 	default:
@@ -126,7 +135,7 @@ func Load() (Config, error) {
 		cfg.LoginThrottle.Window = value
 	}
 
-	if cfg.JWT.Secret == "" {
+	if cfg.JWT.Secret == "" && cfg.JWT.SigningKeys == nil {
 		return Config{}, fmt.Errorf("JWT_SECRET must not be empty")
 	}
 	if cfg.JWT.Lifetime <= 0 {

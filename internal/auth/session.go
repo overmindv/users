@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -35,15 +36,24 @@ func (m *Manager) IssueUser(ctx context.Context, user *domain.User) (string, tim
 		return "", time.Time{}, err
 	}
 	claims := Claims{Roles: user.Roles(), SessionVersion: version, RegisteredClaims: jwt.RegisteredClaims{ID: id, Subject: user.ID(), Issuer: m.issuer, IssuedAt: jwt.NewNumericDate(now), ExpiresAt: jwt.NewNumericDate(expires)}}
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(m.secret)
+	token, err := m.sign(claims)
 
 	return token, expires, err
 }
 
 func (m *Manager) parseClaims(value string) (*Claims, error) {
 	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(value, claims, func(token *jwt.Token) (any, error) { return m.secret, nil }, jwt.WithValidMethods([]string{"HS256"}), jwt.WithIssuer(m.issuer), jwt.WithExpirationRequired(), jwt.WithIssuedAt(), jwt.WithTimeFunc(m.now))
+	methods := []string{"HS256"}
+	if m.keys != nil {
+		methods = append(methods, "EdDSA")
+	}
+	token, err := jwt.ParseWithClaims(value, claims, m.verificationKey, jwt.WithValidMethods(methods), jwt.WithIssuer(m.issuer), jwt.WithExpirationRequired(), jwt.WithIssuedAt(), jwt.WithTimeFunc(m.now))
 	if err != nil || token == nil || !token.Valid || claims.Subject == "" {
+		return nil, domain.ErrUnauthorized
+	}
+	if m.keys != nil && token.Method == jwt.SigningMethodEdDSA &&
+		(!slices.Contains(claims.Audience, m.audience) || claims.IssuedAt == nil ||
+			claims.ExpiresAt.Sub(claims.IssuedAt.Time) > 15*time.Minute || !claims.ExpiresAt.After(claims.IssuedAt.Time)) {
 		return nil, domain.ErrUnauthorized
 	}
 
