@@ -19,7 +19,7 @@ import (
 func TestSecurityAuditRollbackAndLastAdmin(t *testing.T) {
 	ctx := context.Background()
 	pool := throttlePool(t)
-	if _, err := pool.Exec(ctx, `TRUNCATE topic_review_grants,user_sessions,user_outbox_events,users`); err != nil {
+	if _, err := pool.Exec(ctx, `TRUNCATE user_refresh_tokens,user_refresh_families,topic_review_grants,user_sessions,user_outbox_events,users`); err != nil {
 		t.Fatal(err)
 	}
 	ids := []string{uuid.NewString(), uuid.NewString()}
@@ -97,7 +97,7 @@ func TestSecurityAuditActorAndPassword(t *testing.T) {
 func TestLastRealAdminIgnoresDemo(t *testing.T) {
 	ctx := context.Background()
 	pool := throttlePool(t)
-	if _, err := pool.Exec(ctx, `TRUNCATE topic_review_grants,user_sessions,user_outbox_events,users`); err != nil {
+	if _, err := pool.Exec(ctx, `TRUNCATE user_refresh_tokens,user_refresh_families,topic_review_grants,user_sessions,user_outbox_events,users`); err != nil {
 		t.Fatal(err)
 	}
 	for i, id := range []string{"00000000-0000-0000-0000-000000000009", uuid.NewString()} {
