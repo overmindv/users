@@ -36,6 +36,14 @@ func Build(app *parker.App) error {
 	}
 
 	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.Issuer, cfg.JWT.Lifetime)
+	if cfg.JWT.SigningKeys != nil {
+		manager, signingErr := auth.NewSigningManager(cfg.JWT.SigningKeys, cfg.JWT.Issuer, cfg.JWT.Audience, cfg.JWT.Lifetime, cfg.JWT.Secret, cfg.JWT.LegacyUntil)
+		if signingErr != nil {
+			return signingErr
+		}
+		jwtManager = manager
+	}
+	app.HTTP().Handle("GET /.well-known/jwks.json", jwtManager.JWKS())
 
 	repository := postgresrepo.NewUserRepository(pool)
 	repository.SetLocalCredentials(cfg.Profile == localProfile)
@@ -65,7 +73,7 @@ func Build(app *parker.App) error {
 		return recoveryErr
 	}
 	// Общие для всех реплик лимиты по email и доверенному IP.
-	throttle := postgresrepo.NewLoginThrottler(pool, cfg.JWT.Secret, cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.IPMaxAttempts, cfg.LoginThrottle.Window)
+	throttle := postgresrepo.NewLoginThrottler(pool, cfg.LoginContextSecret, cfg.LoginThrottle.MaxAttempts, cfg.LoginThrottle.IPMaxAttempts, cfg.LoginThrottle.Window)
 	users.SetLoginThrottler(throttle)
 	app.AddRunnable("login-throttle-cleanup", worker.RunLoginThrottleCleanup(throttle, app.Logger()))
 
@@ -93,7 +101,7 @@ func Build(app *parker.App) error {
 		app.HTTP(),
 		&graphqldelivery.Resolver{Users: users, Recovery: recovery},
 		func(h http.Handler) http.Handler {
-			return auth.LoginClientIP(cfg.JWT.Secret, auth.OptionalHTTP(jwtManager, h))
+			return auth.LoginClientIP(cfg.LoginContextSecret, auth.OptionalHTTP(jwtManager, h))
 		},
 		app.Logger(),
 	)

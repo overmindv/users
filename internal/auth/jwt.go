@@ -10,12 +10,15 @@ import (
 
 // Manager выпускает и проверяет JWT для пользователей Users.
 type Manager struct {
-	secret   []byte
-	issuer   string
-	lifetime time.Duration
-	now      func() time.Time
-	sessions SessionStore
-	refresh  RefreshStore
+	secret      []byte
+	issuer      string
+	lifetime    time.Duration
+	now         func() time.Time
+	sessions    SessionStore
+	refresh     RefreshStore
+	keys        *SigningKeys
+	audience    string
+	legacyUntil time.Time
 }
 
 // Claims описывает JWT claims, которые нужны gateway для проверки ролей.
@@ -48,7 +51,7 @@ func (m *Manager) Issue(userID string, roles []string) (string, time.Time, error
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 		},
 	}
-	value, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(m.secret)
+	value, err := m.sign(claims)
 	if err != nil {
 		return "", time.Time{}, fmt.Errorf("sign jwt: %w", err)
 	}

@@ -56,7 +56,7 @@ internal/
 
 ## Config (env)
 
-Обязательные: `JWT_SECRET`, `MEDIA_URL`, `MEDIA_USERS_TOKEN`. Опциональные: `JWT_ISSUER`, `JWT_TTL`, `MEDIA_TIMEOUT`, `USERS_WORKER_POLL_INTERVAL`, `BOOTSTRAP_SUPERUSER_*`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_IP_MAX_ATTEMPTS`, `LOGIN_THROTTLE_WINDOW`. Инфраструктурные переменные (HTTP, PostgreSQL, логирование) читает parker.
+Обязательные: `MEDIA_URL`, `MEDIA_USERS_TOKEN`; в старом режиме также `JWT_SECRET`. Для Ed25519 нужны signing seed/kid и отдельный login context secret — см. `docs/signing-keys.md`; gateway получает только JWKS. Опциональные: `JWT_ISSUER`, `JWT_TTL`, `MEDIA_TIMEOUT`, `USERS_WORKER_POLL_INTERVAL`, `BOOTSTRAP_SUPERUSER_*`, `LOGIN_MAX_ATTEMPTS`, `LOGIN_IP_MAX_ATTEMPTS`, `LOGIN_THROTTLE_WINDOW`. Инфраструктурные переменные (HTTP, PostgreSQL, логирование) читает parker.
 
 ## Notes
 

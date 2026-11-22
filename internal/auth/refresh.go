@@ -96,7 +96,7 @@ func (m *Manager) RefreshSession(ctx context.Context, token string) (domain.Sess
 
 func (m *Manager) signRefreshGrant(id, token string, grant domain.RefreshGrant) (domain.SessionTokens, error) {
 	claims := Claims{Roles: grant.Roles, SessionVersion: grant.SecurityVersion, RegisteredClaims: jwt.RegisteredClaims{ID: id, Subject: grant.UserID, Issuer: m.issuer, IssuedAt: jwt.NewNumericDate(m.now().UTC()), ExpiresAt: jwt.NewNumericDate(grant.AccessExpiresAt)}}
-	access, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(m.secret)
+	access, err := m.sign(claims)
 	if err != nil {
 		return domain.SessionTokens{}, err
 	}
