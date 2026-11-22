@@ -14,6 +14,21 @@ import (
 	"github.com/overmindv/users/internal/usecase"
 )
 
+// RefreshSession is the resolver for the refreshSession field.
+func (r *mutationResolver) RefreshSession(ctx context.Context, refreshToken string) (*model.AuthPayload, error) {
+	result, err := r.Users.RefreshSession(ctx, refreshToken)
+	if err != nil {
+		return nil, err
+	}
+	return toAuthPayload(result), nil
+}
+
+// RevokeRefreshSession is the resolver for the revokeRefreshSession field.
+func (r *mutationResolver) RevokeRefreshSession(ctx context.Context, refreshToken string) (bool, error) {
+	err := r.Users.RevokeRefreshSession(ctx, refreshToken)
+	return err == nil, err
+}
+
 // Register обрабатывает публичную регистрацию пользователя.
 func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthPayload, error) {
 	birthDate, err := parseBirthDate(input.BirthDate)
@@ -21,13 +36,14 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 		return nil, err
 	}
 	result, err := r.Users.Register(ctx, usecase.RegisterInput{
-		Email:     input.Email,
-		Password:  input.Password,
-		Username:  input.Username,
-		FirstName: stringValue(input.FirstName),
-		LastName:  stringValue(input.LastName),
-		BirthDate: birthDate,
-		Phone:     stringValue(input.Phone),
+		RefreshSession: boolValue(input.RefreshSession),
+		Email:          input.Email,
+		Password:       input.Password,
+		Username:       input.Username,
+		FirstName:      stringValue(input.FirstName),
+		LastName:       stringValue(input.LastName),
+		BirthDate:      birthDate,
+		Phone:          stringValue(input.Phone),
 	})
 	if err != nil {
 		return nil, err
@@ -38,9 +54,10 @@ func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInp
 // Login обрабатывает публичный вход пользователя.
 func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthPayload, error) {
 	result, err := r.Users.Login(ctx, usecase.LoginInput{
-		ClientIP: auth.ClientIP(ctx),
-		Email:    input.Email,
-		Password: input.Password,
+		RefreshSession: boolValue(input.RefreshSession),
+		ClientIP:       auth.ClientIP(ctx),
+		Email:          input.Email,
+		Password:       input.Password,
 	})
 	if err != nil {
 		return nil, err

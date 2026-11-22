@@ -40,6 +40,7 @@ func Build(app *parker.App) error {
 	repository := postgresrepo.NewUserRepository(pool)
 	repository.SetLocalCredentials(cfg.Profile == localProfile)
 	jwtManager.SetSessionStore(repository)
+	jwtManager.SetRefreshStore(repository)
 	app.HTTP().Handle("POST /internal/session/check", jwtManager.SessionHTTP(false))
 	app.HTTP().Handle("POST /internal/session/revoke", jwtManager.SessionHTTP(true))
 	if cfg.ReviewGrants.ReadToken != "" {
